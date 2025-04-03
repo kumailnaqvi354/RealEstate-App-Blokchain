@@ -1,38 +1,101 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.29;
 
-import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-contract RealEtate is ERC721, Ownable {
-    uint256 public propertyId;
+contract RealEtate is ERC721URIStorage, Ownable {
+    uint256 private _nextPropertyId;
 
-    struct PropertyDetail {
-        string name;
-        string location;
-        uint256 area;
-        uint256 price;
-        bool isBuilderProperty;
-        uint256 noOfInstallments;
-        uint256 installmentAmount;
+    enum PropertyType {
+        INDIVIDUAL,
+        BUILDER
     }
 
-    mapping(uint256 => PropertyDetail) public propertyDetails;
+    struct PaymentPlan {
+        uint256 totalAmount;
+        uint256 downPayment;
+        uint256 installmentAmount;
+        uint256 numOfInstallments;
+        bool isActive;
+    }
 
-    constructor() ERC721("RealEstate", "RE") Ownable(msg.sender) {}
+    struct Property {
+        uint256 id;
+        string location;
+        uint256 price;
+        address owner;
+        bool forSale;
+        PropertyType propertyType;
+        PaymentPlan paymentPlan;
+    }
+
+    mapping(uint256 => Property) public properties;
+
+    event PropertyListed(
+        uint256 indexed propertyId,
+        address indexed owner,
+        uint256 price,
+        string location,
+        PropertyType propertyType
+    );
+
+    constructor() ERC721("RealEstateNFT", "RENT") Ownable(msg.sender) {}
 
     function listProperty(
-        string memory name,
         string memory location,
-        uint256 area,
         uint256 price,
-        bool isBuilderProperty,
-        uint256 noOfInstallments,
-        uint256 installmentAmount
+        string memory tokenURI,
+        bool isBuilder,
+        uint256 downPayment,
+        uint256 installmentAmount,
+        uint256 numOfInstallments
     ) external {
-        unchecked {
-            propertyId++;
+        uint256 propertyId = _nextPropertyId;
+        _nextPropertyId++;
+
+        PropertyType propertyType = isBuilder
+            ? PropertyType.BUILDER
+            : PropertyType.INDIVIDUAL;
+
+        PaymentPlan memory paymentPlan;
+        if (isBuilder) {
+            require(
+                price > downPayment + (installmentAmount * numOfInstallments),
+                "Total payments must match price"
+            );
+            paymentPlan = PaymentPlan(
+                price,
+                downPayment,
+                installmentAmount,
+                numOfInstallments,
+                true
+            );
         }
-        
+
+        properties[propertyId] = Property({
+            id: propertyId,
+            location: location,
+            price: price,
+            owner: msg.sender,
+            forSale: true,
+            propertyType: propertyType,
+            paymentPlan: paymentPlan
+        });
+
+        _mint(msg.sender, propertyId);
+        _setTokenURI(propertyId, tokenURI);
+
+        // Give approval to the contract to manage the NFT
+        approve(address(this), propertyId);
+
+        emit PropertyListed(
+            propertyId,
+            msg.sender,
+            price,
+            location,
+            propertyType
+        );
     }
 }
