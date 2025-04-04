@@ -34,11 +34,7 @@ contract RealEstate is ERC721URIStorage, Ownable {
     mapping(uint256 => Property) public properties;
 
     event PropertyListed(
-        uint256 indexed propertyId,
-        address indexed owner,
-        uint256 price,
-        string location,
-        PropertyType propertyType
+        uint256 indexed propertyId, address indexed owner, uint256 price, string location, PropertyType propertyType
     );
 
     // Custom errors
@@ -59,9 +55,7 @@ contract RealEstate is ERC721URIStorage, Ownable {
         uint256 propertyId = _nextPropertyId;
         _nextPropertyId++;
 
-        PropertyType propertyType = isBuilder
-            ? PropertyType.BUILDER
-            : PropertyType.INDIVIDUAL;
+        PropertyType propertyType = isBuilder ? PropertyType.BUILDER : PropertyType.INDIVIDUAL;
 
         PaymentPlan memory paymentPlan;
         if (isBuilder) {

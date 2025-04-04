@@ -23,7 +23,27 @@ contract CounterTest is Test {
         realEstate = new RealEstate();
     }
 
+    function testListProperty() public {
+        vm.startPrank(alice);
+        realEstate.listProperty("123 Main St", 100 ether, "ipfs://tokenURI", false, 0, 0, 0);
+        vm.stopPrank();
 
-    
+        (, string memory location, uint256 price, address owner, bool forSale,,) = realEstate.properties(0);
+        assertEq(location, "123 Main St");
+        assertEq(price, 100 ether);
+        assertEq(owner, alice);
+        assertTrue(forSale);
+    }
 
+    function testListPropertyWithPaymentPlan() public {
+        vm.startPrank(alice);
+        realEstate.listProperty("123 Main St", 100 ether, "ipfs://tokenURI", false, 20 ether, 10 ether, 8);
+        vm.stopPrank();
+
+        (, string memory location, uint256 price, address owner, bool forSale,,) = realEstate.properties(0);
+        assertEq(location, "123 Main St");
+        assertEq(price, 100 ether);
+        assertEq(owner, alice);
+        assertTrue(forSale);
+    }
 }
