@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-contract RealEtate is ERC721URIStorage, Ownable {
+contract RealEstate is ERC721URIStorage, Ownable {
     uint256 private _nextPropertyId;
 
     enum PropertyType {
@@ -41,6 +41,10 @@ contract RealEtate is ERC721URIStorage, Ownable {
         PropertyType propertyType
     );
 
+    // Custom errors
+    error InvalidPaymentPlan(uint256 price, uint256 totalPayments);
+    error UnauthorizedCaller(address caller);
+
     constructor() ERC721("RealEstateNFT", "RENT") Ownable(msg.sender) {}
 
     function listProperty(
@@ -61,17 +65,11 @@ contract RealEtate is ERC721URIStorage, Ownable {
 
         PaymentPlan memory paymentPlan;
         if (isBuilder) {
-            require(
-                price > downPayment + (installmentAmount * numOfInstallments),
-                "Total payments must match price"
-            );
-            paymentPlan = PaymentPlan(
-                price,
-                downPayment,
-                installmentAmount,
-                numOfInstallments,
-                true
-            );
+            uint256 totalPayments = downPayment + (installmentAmount * numOfInstallments);
+            if (price < totalPayments) {
+                revert InvalidPaymentPlan(price, totalPayments);
+            }
+            paymentPlan = PaymentPlan(price, downPayment, installmentAmount, numOfInstallments, true);
         }
 
         properties[propertyId] = Property({
@@ -90,12 +88,6 @@ contract RealEtate is ERC721URIStorage, Ownable {
         // Give approval to the contract to manage the NFT
         approve(address(this), propertyId);
 
-        emit PropertyListed(
-            propertyId,
-            msg.sender,
-            price,
-            location,
-            propertyType
-        );
+        emit PropertyListed(propertyId, msg.sender, price, location, propertyType);
     }
 }
