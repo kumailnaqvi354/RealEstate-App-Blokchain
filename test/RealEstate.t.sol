@@ -46,4 +46,13 @@ contract CounterTest is Test {
         assertEq(owner, alice);
         assertTrue(forSale);
     }
+
+    function testListPropertyWithInvalidPaymentPlan() public {
+        vm.startPrank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature("InvalidPaymentPlan(uint256,uint256)", 100 ether, 10 * 5 ether + 20 ether)
+        );
+        realEstate.listProperty("123 Main St", 100 ether, "ipfs://tokenURI", true, 20 ether, 10 ether, 5);
+        vm.stopPrank();
+    }
 }

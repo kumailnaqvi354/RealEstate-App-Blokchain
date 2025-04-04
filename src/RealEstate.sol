@@ -60,7 +60,7 @@ contract RealEstate is ERC721URIStorage, Ownable {
         PaymentPlan memory paymentPlan;
         if (isBuilder) {
             uint256 totalPayments = downPayment + (installmentAmount * numOfInstallments);
-            if (price < totalPayments) {
+            if (price > totalPayments) {
                 revert InvalidPaymentPlan(price, totalPayments);
             }
             paymentPlan = PaymentPlan(price, downPayment, installmentAmount, numOfInstallments, true);
