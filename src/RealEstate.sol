@@ -4,6 +4,7 @@ pragma solidity 0.8.29;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import {console} from "forge-std/Test.sol";
 
 contract RealEstate is ERC721URIStorage, Ownable {
     uint256 private _nextPropertyId;
@@ -123,8 +124,8 @@ contract RealEstate is ERC721URIStorage, Ownable {
                 revert InsufficientFunds(msg.value, property.price);
             }
 
-            payable(property.owner).transfer(property.price);
-
+            (bool success,) = payable(property.owner).call{value: property.price}("");
+            require(success, "Failed to send Ether");
             _transfer(property.owner, msg.sender, propertyId);
             property.owner = msg.sender;
             property.forSale = false;
@@ -132,7 +133,6 @@ contract RealEstate is ERC721URIStorage, Ownable {
             emit PropertyPurchased(propertyId, msg.sender, property.price);
         } else {
             PaymentPlan storage plan = property.paymentPlan;
-
             if (!plan.isActive) revert PaymentPlanNotActive(propertyId);
             if (installmentStatus[propertyId].buyer != address(0)) {
                 revert PropertyAlreadyReserved(propertyId);
@@ -140,15 +140,15 @@ contract RealEstate is ERC721URIStorage, Ownable {
             if (msg.value < plan.downPayment) {
                 revert InsufficientDownPayment(msg.value, plan.downPayment);
             }
-
             // Track buyer’s installment status
             installmentStatus[propertyId] =
                 InstallmentInfo({buyer: msg.sender, paidInstallments: 0, totalPaid: msg.value});
-
             // Mark property as reserved
             property.forSale = false;
 
-            payable(property.owner).transfer(plan.downPayment);
+            // send all Ether to owner
+            (bool success,) = payable(property.owner).call{value: plan.downPayment}("");
+            require(success, "Failed to send Ether");
 
             emit DownPaymentReceived(propertyId, msg.sender, plan.downPayment);
         }

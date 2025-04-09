@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {RealEstate} from "../src/RealEstate.sol";
 
-contract CounterTest is Test {
+contract RealEstateTest is Test {
     RealEstate public realEstate;
     address public alice;
     address public bob;
@@ -54,5 +54,88 @@ contract CounterTest is Test {
         );
         realEstate.listProperty("123 Main St", 100 ether, "ipfs://tokenURI", true, 20 ether, 10 ether, 5);
         vm.stopPrank();
+    }
+
+    function testPurchaseIndividualProperty() public {
+        // Alice lists property
+        vm.startPrank(alice);
+        realEstate.listProperty("456 Market St", 100 ether, "ipfs://tokenURI", false, 0, 0, 0);
+        vm.stopPrank();
+
+        // Bob purchases it with full payment
+        vm.prank(bob);
+        realEstate.purchaseProperty{value: 100 ether}(0);
+
+        (,,, address newOwner, bool forSale,,) = realEstate.properties(0);
+        assertEq(newOwner, bob);
+        assertFalse(forSale);
+        assertEq(realEstate.ownerOf(0), bob);
+    }
+
+    function testPurchaseBuilderPropertyDownPaymentOnly() public {
+        // Alice lists as builder
+        vm.startPrank(alice);
+        realEstate.listProperty("789 Builder Blvd", 100 ether, "ipfs://tokenURI", true, 20 ether, 10 ether, 8);
+        vm.stopPrank();
+
+        // Bob pays down payment
+        vm.prank(bob);
+        realEstate.purchaseProperty{value: 20 ether}(0);
+
+        (,,, address currentOwner, bool forSale,,) = realEstate.properties(0);
+        assertEq(currentOwner, alice);
+        assertFalse(forSale); // should be reserved
+
+        (address buyer,, uint256 totalPaid) = realEstate.installmentStatus(0);
+        assertEq(buyer, bob);
+        assertEq(totalPaid, 20 ether);
+
+        // NFT should still be with Alice
+        assertEq(realEstate.ownerOf(0), alice);
+    }
+
+    function testCannotBuyOwnProperty() public {
+        vm.startPrank(alice);
+        realEstate.listProperty("Own House", 100 ether, "ipfs://uri", false, 0, 0, 0);
+        vm.expectRevert(abi.encodeWithSignature("CannotBuyOwnProperty(address)", alice));
+        realEstate.purchaseProperty{value: 100 ether}(0);
+        vm.stopPrank();
+    }
+
+    function testInsufficientFundsIndividual() public {
+        vm.startPrank(alice);
+        realEstate.listProperty("Short Street", 100 ether, "ipfs://uri", false, 0, 0, 0);
+        vm.stopPrank();
+
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(uint256,uint256)", 90 ether, 100 ether));
+        realEstate.purchaseProperty{value: 90 ether}(0);
+    }
+
+    function testInsufficientDownPayment() public {
+        vm.startPrank(alice);
+        realEstate.listProperty("Downpayment Rd", 100 ether, "ipfs://uri", true, 25 ether, 5 ether, 15);
+        vm.stopPrank();
+
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientDownPayment(uint256,uint256)", 10 ether, 25 ether));
+        realEstate.purchaseProperty{value: 10 ether}(0);
+    }
+
+    function testDoubleReservationFails() public {
+        // Step 1: Alice lists the property
+        vm.startPrank(alice);
+        realEstate.listProperty("MultiBuyer Ave", 100 ether, "ipfs://uri", true, 20 ether, 10 ether, 8);
+        vm.stopPrank();
+
+        // Step 2: Bob reserves the property
+        vm.startPrank(bob);
+        realEstate.purchaseProperty{value: 20 ether}(0);
+
+        // Step 3: Charlie tries to reserve the same property (should revert)
+            vm.startPrank(charlie);
+            vm.expectRevert(abi.encodeWithSignature("PropertyNotForSale(uint256)", 0));
+            realEstate.purchaseProperty{value: 20 ether}(0);
+            vm.stopPrank();
     }
 }
