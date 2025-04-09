@@ -138,4 +138,19 @@ contract RealEstateTest is Test {
             realEstate.purchaseProperty{value: 20 ether}(0);
             vm.stopPrank();
     }
+
+    function testFullPaymentForBuilderPropertySucceeds() public {
+    vm.startPrank(alice);
+    realEstate.listProperty("BuilderPayFull Blvd", 100 ether, "ipfs://uri", false, 20 ether, 10 ether, 8);
+    vm.stopPrank();
+
+    vm.prank(bob);
+    realEstate.purchaseProperty{value: 100 ether}(0); // Paying full, not just down payment
+
+    (,,, address currentOwner, bool forSale,,) = realEstate.properties(0);
+    assertEq(currentOwner, bob);
+    assertFalse(forSale);
+    assertEq(realEstate.ownerOf(0), bob);
+}
+
 }
