@@ -175,7 +175,7 @@ contract RealEstate is ERC721URIStorage, Ownable {
 
         // Final installment logic
         if (info.paidInstallments == plan.numOfInstallments) {
-            uint256 totalToPay = plan.downPayment + (plan.installmentAmount * plan.numOfInstallments);
+            uint256 totalToPay = (plan.installmentAmount * plan.numOfInstallments);
             address seller = property.owner;
 
             // Transfer funds from contract to seller
