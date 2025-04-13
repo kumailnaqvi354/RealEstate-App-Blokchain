@@ -86,7 +86,7 @@ contract RealEstateTest is Test {
         assertEq(currentOwner, alice);
         assertFalse(forSale); // should be reserved
 
-        (address buyer,, uint256 totalPaid) = realEstate.installmentStatus(0);
+        (address buyer,, uint256 totalPaid,,,) = realEstate.installmentStatus(0);
         assertEq(buyer, bob);
         assertEq(totalPaid, 20 ether);
 
@@ -133,61 +133,59 @@ contract RealEstateTest is Test {
         realEstate.purchaseProperty{value: 20 ether}(0);
 
         // Step 3: Charlie tries to reserve the same property (should revert)
-            vm.startPrank(charlie);
-            vm.expectRevert(abi.encodeWithSignature("PropertyNotForSale(uint256)", 0));
-            realEstate.purchaseProperty{value: 20 ether}(0);
-            vm.stopPrank();
+        vm.startPrank(charlie);
+        vm.expectRevert(abi.encodeWithSignature("PropertyNotForSale(uint256)", 0));
+        realEstate.purchaseProperty{value: 20 ether}(0);
+        vm.stopPrank();
     }
 
     function testFullPaymentForBuilderPropertySucceeds() public {
-    vm.startPrank(alice);
-    realEstate.listProperty("BuilderPayFull Blvd", 100 ether, "ipfs://uri", false, 20 ether, 10 ether, 8);
-    vm.stopPrank();
+        vm.startPrank(alice);
+        realEstate.listProperty("BuilderPayFull Blvd", 100 ether, "ipfs://uri", false, 20 ether, 10 ether, 8);
+        vm.stopPrank();
 
-    vm.prank(bob);
-    realEstate.purchaseProperty{value: 100 ether}(0); // Paying full, not just down payment
-
-    (,,, address currentOwner, bool forSale,,) = realEstate.properties(0);
-    assertEq(currentOwner, bob);
-    assertFalse(forSale);
-    assertEq(realEstate.ownerOf(0), bob);
-}
-
-function testCompleteBuilderPlanJourney() public {
-    // Step 1: Alice (builder) lists a property with a payment plan
-    vm.startPrank(alice);
-    realEstate.listProperty("Plan Street", 100 ether, "ipfs://plan-uri", true, 20 ether, 10 ether, 8);
-    vm.stopPrank();
-
-    // Step 2: Bob makes the down payment
-    vm.prank(bob);
-    realEstate.purchaseProperty{value: 20 ether}(0);
-
-    // Check reservation and ownership (still with builder)
-    (,,, address currOwner, bool forSale,,) = realEstate.properties(0);
-    assertEq(currOwner, alice);
-    assertFalse(forSale);
-    assertEq(realEstate.ownerOf(0), alice);
-
-    // Step 3: Bob pays all 8 installments
-    for (uint256 i = 0; i < 8; i++) {
         vm.prank(bob);
-        realEstate.payInstallment{value: 10 ether}(0);
+        realEstate.purchaseProperty{value: 100 ether}(0); // Paying full, not just down payment
 
-        (address buyer, uint256 paidInstallments, uint256 totalPaid) = realEstate.installmentStatus(0);
-        assertEq(buyer, bob);
-        assertEq(paidInstallments, i + 1);
-        assertEq(totalPaid, 20 ether + (10 ether * (i + 1)));
+        (,,, address currentOwner, bool forSale,,) = realEstate.properties(0);
+        assertEq(currentOwner, bob);
+        assertFalse(forSale);
+        assertEq(realEstate.ownerOf(0), bob);
     }
 
-    // Step 4: Check ownership after final installment
-    assertEq(realEstate.ownerOf(0), bob);
+    function testCompleteBuilderPlanJourney() public {
+        // Step 1: Alice (builder) lists a property with a payment plan
+        vm.startPrank(alice);
+        realEstate.listProperty("Plan Street", 100 ether, "ipfs://plan-uri", true, 20 ether, 10 ether, 8);
+        vm.stopPrank();
 
-    // Verify updated property state
-    (,,, address newOwner, bool isForSale,,) = realEstate.properties(0);
-    assertEq(newOwner, bob);
-    assertFalse(isForSale);
-}
+        // Step 2: Bob makes the down payment
+        vm.prank(bob);
+        realEstate.purchaseProperty{value: 20 ether}(0);
 
+        // Check reservation and ownership (still with builder)
+        (,,, address currOwner, bool forSale,,) = realEstate.properties(0);
+        assertEq(currOwner, alice);
+        assertFalse(forSale);
+        assertEq(realEstate.ownerOf(0), alice);
 
+        // Step 3: Bob pays all 8 installments
+        for (uint256 i = 0; i < 8; i++) {
+            vm.prank(bob);
+            realEstate.payInstallment{value: 10 ether}(0);
+
+            (address buyer, uint256 paidInstallments, uint256 totalPaid,,,) = realEstate.installmentStatus(0);
+            assertEq(buyer, bob);
+            assertEq(paidInstallments, i + 1);
+            assertEq(totalPaid, 20 ether + (10 ether * (i + 1)));
+        }
+
+        // Step 4: Check ownership after final installment
+        assertEq(realEstate.ownerOf(0), bob);
+
+        // Verify updated property state
+        (,,, address newOwner, bool isForSale,,) = realEstate.properties(0);
+        assertEq(newOwner, bob);
+        assertFalse(isForSale);
+    }
 }

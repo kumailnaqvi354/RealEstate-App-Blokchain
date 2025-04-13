@@ -36,6 +36,9 @@ contract RealEstate is ERC721URIStorage, Ownable {
         address buyer;
         uint256 paidInstallments;
         uint256 totalPaid;
+        uint256 startTime;
+        uint256 durationPerInstallment; // in seconds
+        bool disputeRaised;
     }
 
     mapping(uint256 => InstallmentInfo) public installmentStatus;
@@ -49,6 +52,7 @@ contract RealEstate is ERC721URIStorage, Ownable {
     event DownPaymentReceived(uint256 indexed propertyId, address indexed buyer, uint256 amount);
     event InstallmentPaid(uint256 indexed propertyId, address indexed buyer, uint256 installmentNumber);
     event PropertyFullyPaid(uint256 indexed propertyId, address indexed newOwner);
+    event DisputeRaised(uint256 indexed propertyId, address indexed builder, address indexed buyer, string reason);
 
     // Custom errors
     error InvalidPaymentPlan(uint256 price, uint256 totalPayments);
@@ -66,6 +70,8 @@ contract RealEstate is ERC721URIStorage, Ownable {
     error NotInstallmentBuyer(address caller);
     error AllInstallmentsPaid(uint256 propertyId);
     error InsufficientInstallment(uint256 sent, uint256 required);
+    error DisputeAlreadyRaised(uint256 propertyId);
+    error InstallmentsOnTrack(uint256 propertyId);
 
     constructor() ERC721("RealEstateNFT", "RENT") Ownable(msg.sender) {}
 
@@ -141,8 +147,15 @@ contract RealEstate is ERC721URIStorage, Ownable {
                 revert InsufficientDownPayment(msg.value, plan.downPayment);
             }
             // Track buyer’s installment status
-            installmentStatus[propertyId] =
-                InstallmentInfo({buyer: msg.sender, paidInstallments: 0, totalPaid: msg.value});
+            installmentStatus[propertyId] = InstallmentInfo({
+                buyer: msg.sender,
+                paidInstallments: 0,
+                totalPaid: msg.value,
+                startTime: block.timestamp,
+                durationPerInstallment: 30 days,
+                disputeRaised: false
+            });
+
             // Mark property as reserved
             property.forSale = false;
 
@@ -189,5 +202,24 @@ contract RealEstate is ERC721URIStorage, Ownable {
 
             emit PropertyFullyPaid(propertyId, msg.sender);
         }
+    }
+
+    function raiseDispute(uint256 propertyId) external {
+        Property storage property = properties[propertyId];
+        InstallmentInfo storage info = installmentStatus[propertyId];
+
+        if (property.propertyType != PropertyType.BUILDER) revert InvalidInputs();
+        if (msg.sender != property.owner) revert UnauthorizedCaller(msg.sender);
+        if (info.buyer == address(0)) revert InvalidInputs();
+        if (info.disputeRaised) revert DisputeAlreadyRaised(propertyId);
+
+        uint256 elapsed = block.timestamp - info.startTime;
+        uint256 expectedInstallments = elapsed / info.durationPerInstallment;
+
+        if (info.paidInstallments >= expectedInstallments) revert InstallmentsOnTrack(propertyId);
+
+        info.disputeRaised = true;
+
+        emit DisputeRaised(propertyId, msg.sender, info.buyer, "Installments not paid on time");
     }
 }
