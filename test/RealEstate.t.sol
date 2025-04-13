@@ -10,17 +10,21 @@ contract RealEstateTest is Test {
     address public bob;
     address public charlie;
     address public dave;
+    address public owner;
 
     function setUp() public {
         alice = address(0x1);
         bob = address(0x2);
         charlie = address(0x3);
         dave = address(0x4);
+        owner = address(0x5);
         vm.deal(alice, 1000 ether);
         vm.deal(bob, 1000 ether);
         vm.deal(charlie, 1000 ether);
         vm.deal(dave, 1000 ether);
+        vm.startPrank(owner);
         realEstate = new RealEstate();
+        vm.stopPrank();
     }
 
     function testListProperty() public {

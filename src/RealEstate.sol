@@ -36,8 +36,8 @@ contract RealEstate is ERC721URIStorage, Ownable {
         address buyer;
         uint256 paidInstallments;
         uint256 totalPaid;
-        uint256 startTime;
-        uint256 durationPerInstallment; // in seconds
+        uint256 startTime; // when down payment was made
+        uint256 durationPerInstallment; // time allowed per installment
         bool disputeRaised;
     }
 
@@ -53,6 +53,7 @@ contract RealEstate is ERC721URIStorage, Ownable {
     event InstallmentPaid(uint256 indexed propertyId, address indexed buyer, uint256 installmentNumber);
     event PropertyFullyPaid(uint256 indexed propertyId, address indexed newOwner);
     event DisputeRaised(uint256 indexed propertyId, address indexed builder, address indexed buyer, string reason);
+    event DisputeResolved(uint256 indexed propertyId, address indexed buyer);
 
     // Custom errors
     error InvalidPaymentPlan(uint256 price, uint256 totalPayments);
@@ -72,6 +73,7 @@ contract RealEstate is ERC721URIStorage, Ownable {
     error InsufficientInstallment(uint256 sent, uint256 required);
     error DisputeAlreadyRaised(uint256 propertyId);
     error InstallmentsOnTrack(uint256 propertyId);
+    error DisputeNotRaised(uint256 propertyId);
 
     constructor() ERC721("RealEstateNFT", "RENT") Ownable(msg.sender) {}
 
@@ -146,13 +148,12 @@ contract RealEstate is ERC721URIStorage, Ownable {
             if (msg.value < plan.downPayment) {
                 revert InsufficientDownPayment(msg.value, plan.downPayment);
             }
-            // Track buyer’s installment status
             installmentStatus[propertyId] = InstallmentInfo({
                 buyer: msg.sender,
                 paidInstallments: 0,
                 totalPaid: msg.value,
                 startTime: block.timestamp,
-                durationPerInstallment: 30 days,
+                durationPerInstallment: 30 days, // or any duration you want to enforce
                 disputeRaised: false
             });
 
@@ -221,5 +222,44 @@ contract RealEstate is ERC721URIStorage, Ownable {
         info.disputeRaised = true;
 
         emit DisputeRaised(propertyId, msg.sender, info.buyer, "Installments not paid on time");
+    }
+
+    function resolveDispute(uint256 propertyId) external onlyOwner {
+        InstallmentInfo storage info = installmentStatus[propertyId];
+        Property storage property = properties[propertyId];
+
+        if (!info.disputeRaised) revert DisputeNotRaised(propertyId);
+
+        uint256 elapsed = block.timestamp - info.startTime;
+        uint256 expectedInstallments = elapsed / info.durationPerInstallment;
+
+        if (info.paidInstallments >= expectedInstallments) {
+            // Dispute is no longer valid, dismiss it
+            info.disputeRaised = false;
+            emit DisputeResolved(propertyId, info.buyer);
+            return;
+        }
+
+        address buyer = info.buyer;
+        uint256 refundAmount = info.totalPaid;
+
+        // Reset property state
+        property.forSale = true;
+
+        // Clear buyer info
+        installmentStatus[propertyId] = InstallmentInfo({
+            buyer: address(0),
+            paidInstallments: 0,
+            totalPaid: 0,
+            startTime: 0,
+            durationPerInstallment: 0,
+            disputeRaised: false
+        });
+
+        // Refund the buyer
+        (bool success,) = payable(buyer).call{value: refundAmount}("");
+        require(success, "Refund to buyer failed");
+
+        emit DisputeResolved(propertyId, buyer);
     }
 }
