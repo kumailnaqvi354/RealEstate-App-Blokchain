@@ -211,4 +211,53 @@ contract RealEstateTest is Test {
         vm.prank(bob);
         realEstate.raiseDispute(id);
     }
+
+    function test_RevertIfDisputeAlreadyRaised() public {
+        uint256 id = listBuilderProperty();
+
+        vm.prank(bob);
+        realEstate.purchaseProperty{value: 20 ether}(id);
+
+        vm.warp(block.timestamp + 40 days); // overdue
+
+        vm.prank(alice);
+        realEstate.raiseDispute(id);
+
+        vm.expectRevert(abi.encodeWithSelector(RealEstate.DisputeAlreadyRaised.selector, id));
+        vm.prank(alice);
+        realEstate.raiseDispute(id);
+    }
+
+    function test_RevertIfInstallmentsOnTrack() public {
+        uint256 id = listBuilderProperty();
+
+        vm.prank(bob);
+        realEstate.purchaseProperty{value: 20 ether}(id);
+
+        vm.warp(block.timestamp + 25 days);
+        vm.prank(bob);
+        realEstate.payInstallment{value: 10 ether}(id);
+
+        vm.warp(block.timestamp + 6 days); // total ~31 days
+
+        vm.expectRevert(abi.encodeWithSelector(RealEstate.InstallmentsOnTrack.selector, id));
+        vm.prank(alice);
+        realEstate.raiseDispute(id);
+    }
+
+    function test_HappyPathDisputeRaised() public {
+        uint256 id = listBuilderProperty();
+
+        vm.prank(bob);
+        realEstate.purchaseProperty{value: 20 ether}(id);
+
+        // simulate 40 days without payment
+        vm.warp(block.timestamp + 40 days);
+
+        vm.expectEmit(true, true, true, true);
+        emit RealEstate.DisputeRaised(id, alice, bob, "Installments not paid on time");
+
+        vm.prank(alice);
+        realEstate.raiseDispute(id);
+    }
 }
