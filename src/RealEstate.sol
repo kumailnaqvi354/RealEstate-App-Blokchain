@@ -45,6 +45,8 @@ contract RealEstate is ERC721URIStorage, Ownable {
 
     mapping(uint256 => Property) public properties;
 
+    mapping(address => bool) public blacklisted;
+
     event PropertyListed(
         uint256 indexed propertyId, address indexed owner, uint256 price, string location, PropertyType propertyType
     );
@@ -185,6 +187,9 @@ contract RealEstate is ERC721URIStorage, Ownable {
         info.paidInstallments++;
         info.totalPaid += msg.value;
 
+        (bool success,) = payable(address(this)).call{value: msg.value}("");
+        require(success, "Installment failed");
+
         emit InstallmentPaid(propertyId, msg.sender, info.paidInstallments);
 
         // Final installment logic
@@ -241,7 +246,7 @@ contract RealEstate is ERC721URIStorage, Ownable {
         }
 
         address buyer = info.buyer;
-        uint256 refundAmount = info.totalPaid;
+        uint256 refundAmount = info.totalPaid - property.paymentPlan.downPayment;
 
         // Reset property state
         property.forSale = true;
@@ -256,10 +261,16 @@ contract RealEstate is ERC721URIStorage, Ownable {
             disputeRaised: false
         });
 
-        // Refund the buyer
-        (bool success,) = payable(buyer).call{value: refundAmount}("");
-        require(success, "Refund to buyer failed");
+        blacklisted[buyer] = true; // Blacklist the buyer
 
+        // Refund the buyer
+        if (refundAmount > 0) {
+            (bool success,) = payable(buyer).call{value: refundAmount}("");
+            require(success, "Refund to buyer failed");
+        }
         emit DisputeResolved(propertyId, buyer);
     }
+
+    receive() external payable {}
+    fallback() external payable {}
 }

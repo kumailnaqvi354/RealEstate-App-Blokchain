@@ -10,19 +10,19 @@ contract RealEstateTest is Test {
     address public bob;
     address public charlie;
     address public dave;
-    address public owner;
+    address public admin;
 
     function setUp() public {
         alice = address(0x1);
         bob = address(0x2);
         charlie = address(0x3);
         dave = address(0x4);
-        owner = address(0x5);
+        admin = address(0x5);
         vm.deal(alice, 1000 ether);
         vm.deal(bob, 1000 ether);
         vm.deal(charlie, 1000 ether);
         vm.deal(dave, 1000 ether);
-        vm.startPrank(owner);
+        vm.startPrank(admin);
         realEstate = new RealEstate();
         vm.stopPrank();
     }
@@ -263,5 +263,52 @@ contract RealEstateTest is Test {
 
         vm.prank(alice);
         realEstate.raiseDispute(id);
+    }
+
+    function testResolveDispute() public {
+        // Owner lists a property
+        vm.startPrank(bob);
+        realEstate.listProperty(
+            "Location A",
+            100 ether,
+            "ipfs://token",
+            true, // isBuilder
+            20 ether, // downPayment
+            10 ether, // installmentAmount
+            8 // totalInstallments
+        );
+        vm.stopPrank();
+
+        // Bob purchases the property with downpayment
+        vm.startPrank(alice);
+        realEstate.purchaseProperty{value: 20 ether}(0);
+        vm.stopPrank();
+
+        // Warp time to allow one installment (30 days)
+        vm.warp(block.timestamp + 30 days);
+
+        // Bob pays one installment
+        vm.startPrank(alice);
+        realEstate.payInstallment{value: 10 ether}(0);
+        vm.stopPrank();
+
+        // Property owner (owner) raises a dispute
+        vm.warp(block.timestamp + 31 days);
+
+        vm.startPrank(bob);
+        realEstate.raiseDispute(0);
+        vm.stopPrank();
+
+        // Admin (contract owner) resolves the dispute
+        vm.startPrank(admin);
+        realEstate.resolveDispute(0);
+        vm.stopPrank();
+
+        // Verify the buyer is blacklisted
+        bool blacklisted = realEstate.blacklisted(alice);
+        assertTrue(blacklisted, "Buyer should be blacklisted");
+
+        // Check buyer refunded only installments, not downpayment
+        assertEq(alice.balance, 1000 ether - 20 ether); // downpayment should not be refunded
     }
 }
