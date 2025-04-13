@@ -41,5 +41,39 @@ contract RealEstateTest is Test {
         assertEq(fractionalizeProperty.isApprovedForAll(alice, address(fractionalizeProperty)), true);
     }
 
+/// @notice Test revert if totalFractions is zero
+function testCreateFractionalPropertyZeroFractions() public {
+    vm.startPrank(alice);
+    vm.expectRevert(abi.encodeWithSignature("ZeroFractions()"));  
+    fractionalizeProperty.createFractionlizeProperty(0, 0, 1 ether);  // Attempt to create with 0 fractions
+    vm.stopPrank();
+}
+ 
+ /// @notice Test revert if sellerOwnedFractions is greater than totalFractions
+function testCreateFractionalPropertySellerOwnershipTooHigh() public {
+    vm.startPrank(alice);
+    vm.expectRevert(abi.encodeWithSignature("SellerOwnershipTooHigh()"));  // Expect revert with the custom error SellerOwnershipTooHigh
+    fractionalizeProperty.createFractionlizeProperty(100, 101, 1 ether);  // Attempt to assign more seller-owned fractions than total
+    vm.stopPrank();
+}
+
+/// @notice Test that fractionsForSale is calculated correctly
+function testCreateFractionalPropertyFractionsForSale() public {
+    vm.startPrank(alice);
+    fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+    vm.stopPrank();
+
+    uint256 propertyId = 1;
+    (address seller, uint256 totalFractions, uint256 sellerOwnedFractions, uint256 fractionsForSale, uint256 price) = fractionalizeProperty.properties(propertyId);
+    assertEq(fractionsForSale, totalFractions - sellerOwnedFractions, "fractionsForSale is incorrect");
+}
+/// @notice Test that approval is set for the contract
+function testCreateFractionalPropertyApprovalForAll() public {
+    vm.startPrank(alice);
+    fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+    vm.stopPrank();
+
+    assertEq(fractionalizeProperty.isApprovedForAll(alice, address(fractionalizeProperty)), true, "Approval for contract not set");
+}
 
 }
