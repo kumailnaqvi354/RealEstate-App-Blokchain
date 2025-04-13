@@ -188,4 +188,27 @@ contract RealEstateTest is Test {
         assertEq(newOwner, bob);
         assertFalse(isForSale);
     }
+
+    function listBuilderProperty() internal returns (uint256) {
+        vm.prank(alice);
+        realEstate.listProperty("Sector 9", 100 ether, "ipfs://abc", true, 20 ether, 10 ether, 8);
+        return 0; // propertyId
+    }
+
+    function test_RevertIfNotBuilderType() public {
+        vm.prank(alice);
+        realEstate.listProperty("Indv", 50 ether, "uri", false, 0, 0, 0); // INDIVIDUAL type
+
+        vm.expectRevert(abi.encodeWithSelector(RealEstate.InvalidInputs.selector));
+        vm.prank(alice);
+        realEstate.raiseDispute(0);
+    }
+
+    function test_RevertIfCallerIsNotOwner() public {
+        uint256 id = listBuilderProperty();
+
+        vm.expectRevert(abi.encodeWithSelector(RealEstate.UnauthorizedCaller.selector, bob));
+        vm.prank(bob);
+        realEstate.raiseDispute(id);
+    }
 }
