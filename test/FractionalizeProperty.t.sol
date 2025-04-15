@@ -119,4 +119,79 @@ contract RealEstateTest is Test {
         fractionalizeProperty.buyFractions{value: incorrectValue}(1, amountToBuy);
         vm.stopPrank();
     }
+
+    function testResellFractions() public {
+        // Create and buy fractions before testing resell
+        vm.startPrank(alice);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        fractionalizeProperty.buyFractions{value: 10 ether}(1, 10);
+        vm.stopPrank();
+
+        // Bob resells fractions
+        vm.startPrank(bob);
+        fractionalizeProperty.resellFractions(1, 5, 2 ether); // resell 5 fractions at 2 ether each
+        vm.stopPrank();
+
+        // Verify the resale listing is created
+        (
+            address seller,
+            uint256 totalFractions,
+            uint256 sellerOwnedFractions,
+            uint256 fractionsForSale,
+            uint256 pricePerFraction
+        ) = fractionalizeProperty.properties(1);
+
+        assertEq(seller, alice);
+        assertEq(totalFractions, 100);
+        assertEq(sellerOwnedFractions, 40);
+        assertEq(fractionsForSale, 55); // 60 fractions - 10 purchased + 5 resold
+    }
+
+    function testResellZeroAmount() public {
+        vm.startPrank(alice);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        fractionalizeProperty.buyFractions{value: 10 ether}(1, 10);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        vm.expectRevert(FractionalProperty.ZeroAmount.selector); // Expect ZeroAmount revert
+        fractionalizeProperty.resellFractions(1, 0, 2 ether);
+        vm.stopPrank();
+    }
+
+    function testResellZeroPrice() public {
+        vm.startPrank(alice);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        fractionalizeProperty.buyFractions{value: 10 ether}(1, 10);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        vm.expectRevert(FractionalProperty.ZeroPrice.selector); // Expect ZeroPrice revert
+        fractionalizeProperty.resellFractions(1, 5, 0);
+        vm.stopPrank();
+    }
+
+    function testResellInsufficientBalance() public {
+        vm.startPrank(alice);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        fractionalizeProperty.buyFractions{value: 10 ether}(1, 10);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        vm.expectRevert(FractionalProperty.InsufficientBalanceToResell.selector); // Expect InsufficientBalanceToResell revert
+        fractionalizeProperty.resellFractions(1, 15, 2 ether); // Trying to resell more than owned
+        vm.stopPrank();
+    }
 }

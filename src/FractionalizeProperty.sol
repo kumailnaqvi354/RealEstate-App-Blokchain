@@ -16,13 +16,23 @@ contract FractionalProperty is ERC1155, ERC1155Holder, Ownable {
         uint256 pricePerFraction; // in wei
     }
 
+    struct Resale {
+        address seller;
+        uint256 amount;
+        uint256 pricePerFraction;
+    }
+
     mapping(uint256 => Property) public properties;
+    mapping(uint256 => Resale[]) public resaleListings; // propertyId => list of resales
 
     error ZeroFractions();
     error SellerOwnershipTooHigh();
     error InvalidBuyer();
     error IncorrectValueSent();
     error NotEnoughFractionsAvailable();
+    error ZeroAmount();
+    error ZeroPrice();
+    error InsufficientBalanceToResell();
 
     event PropertyFractionalized(
         uint256 indexed propertyId,
@@ -34,6 +44,9 @@ contract FractionalProperty is ERC1155, ERC1155Holder, Ownable {
     );
 
     event FractionsPurchased(uint256 indexed propertyId, address indexed buyer, uint256 amount, uint256 totalPaid);
+    event FractionsListedForResale(
+        uint256 indexed propertyId, address indexed seller, uint256 amount, uint256 pricePerFraction
+    );
 
     constructor(string memory uri) ERC1155(uri) Ownable(msg.sender) {}
 
@@ -89,6 +102,24 @@ contract FractionalProperty is ERC1155, ERC1155Holder, Ownable {
         property.fractionsForSale -= amount;
 
         emit FractionsPurchased(propertyId, msg.sender, amount, msg.value);
+    }
+
+    function resellFractions(uint256 propertyId, uint256 amount, uint256 pricePerFraction) external {
+        if (amount == 0) revert ZeroAmount();
+        if (pricePerFraction == 0) revert ZeroPrice();
+        if (balanceOf(msg.sender, propertyId) < amount) revert InsufficientBalanceToResell();
+
+        // Transfer fractions from user to contract for custody
+        _safeTransferFrom(msg.sender, address(this), propertyId, amount, "");
+
+        // Record resale listing
+        resaleListings[propertyId].push(
+            Resale({seller: msg.sender, amount: amount, pricePerFraction: pricePerFraction})
+        );
+
+        properties[propertyId].fractionsForSale += amount;
+
+        emit FractionsListedForResale(propertyId, msg.sender, amount, pricePerFraction);
     }
 
     function supportsInterface(bytes4 interfaceId)
