@@ -5,11 +5,16 @@ import { Building, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { ModeToggle } from "@/components/mode-toggle"
+import Web3Provider from "./Provider"
+import { ConnectKitButton } from "connectkit"
+
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
+    <>
+    <Web3Provider>
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
@@ -46,14 +51,14 @@ export default function Header() {
                 List Property
               </Button>
             </Link>
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                Log In
-              </Button>
-            </Link>
-            <Link href="/register">
+            
+              {/* <Button variant="ghost" size="sm"> */}
+              <ConnectKitButton wallet-connect-button />
+                            {/* </Button> */}
+            
+            {/* <Link href="/register">
               <Button size="sm">Sign Up</Button>
-            </Link>
+            </Link> */}
           </div>
 
           {/* Mobile Menu Button */}
@@ -112,16 +117,18 @@ export default function Header() {
             <div className="flex flex-col space-y-2 pt-2 border-t">
               <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
-                  Log In
+                  Connect Wallet
                 </Button>
               </Link>
-              <Link href="/register" onClick={() => setIsMenuOpen(false)}>
+              {/* <Link href="/register" onClick={() => setIsMenuOpen(false)}>
                 <Button className="w-full justify-start">Sign Up</Button>
-              </Link>
+              </Link> */}
             </div>
           </nav>
         </div>
       )}
     </header>
+    </Web3Provider>
+    </>
   )
 }
