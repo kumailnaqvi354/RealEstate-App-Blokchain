@@ -71,4 +71,3 @@ export default function PropertyGallery({ images }: PropertyGalleryProps) {
     </div>
   )
 }
-

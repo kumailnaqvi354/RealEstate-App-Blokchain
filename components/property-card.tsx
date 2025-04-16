@@ -76,4 +76,3 @@ export function PropertyCard({ property }: PropertyCardProps) {
     </Link>
   )
 }
-

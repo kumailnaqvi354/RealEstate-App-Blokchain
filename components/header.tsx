@@ -41,6 +41,11 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <ModeToggle />
           <div className="hidden md:flex items-center gap-2">
+            <Link href="/list-property">
+              <Button variant="outline" size="sm">
+                List Property
+              </Button>
+            </Link>
             <Link href="/login">
               <Button variant="ghost" size="sm">
                 Log In
@@ -97,6 +102,13 @@ export default function Header() {
             >
               Contact
             </Link>
+            <Link
+              href="/list-property"
+              className="text-sm font-medium transition-colors hover:text-primary"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              List Property
+            </Link>
             <div className="flex flex-col space-y-2 pt-2 border-t">
               <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
@@ -113,4 +125,3 @@ export default function Header() {
     </header>
   )
 }
-

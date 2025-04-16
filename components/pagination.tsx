@@ -85,4 +85,3 @@ export function Pagination({ totalPages, currentPage }: PaginationProps) {
     </div>
   )
 }
-

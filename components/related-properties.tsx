@@ -65,4 +65,3 @@ export default function RelatedProperties({ propertyId }: RelatedPropertiesProps
     </div>
   )
 }
-
