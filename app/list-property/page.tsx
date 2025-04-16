@@ -82,7 +82,7 @@ export default function ListPropertyPage() {
             Your property has been submitted for verification on the blockchain.
           </CardDescription>
           <p className="mb-8 text-muted-foreground">
-            Once verified, your property will appear in the listings. This typically takes 24-48 hours.
+            Once verified, your property will appear in the listings.
           </p>
           <Button onClick={() => router.push("/properties")} className="mx-auto">
             View All Properties
@@ -116,13 +116,12 @@ export default function ListPropertyPage() {
           {Array.from({ length: totalSteps }).map((_, index) => (
             <div
               key={index}
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                currentStep > index + 1
+              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep > index + 1
                   ? "bg-primary text-primary-foreground"
                   : currentStep === index + 1
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground"
-              }`}
+                }`}
             >
               {index + 1}
             </div>
@@ -164,11 +163,8 @@ export default function ListPropertyPage() {
                         <SelectValue placeholder="Select property type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="apartment">Apartment</SelectItem>
-                        <SelectItem value="house">House</SelectItem>
-                        <SelectItem value="condo">Condo</SelectItem>
-                        <SelectItem value="villa">Villa</SelectItem>
-                        <SelectItem value="land">Land</SelectItem>
+                        <SelectItem value="apartment">Individual</SelectItem>
+                        <SelectItem value="house">Builder (Payment Plan)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -187,7 +183,7 @@ export default function ListPropertyPage() {
                         <SelectValue placeholder="Select number" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="0">Studio</SelectItem>
+                        {/* <SelectItem value="0">Studio</SeclectItem> */}
                         <SelectItem value="1">1</SelectItem>
                         <SelectItem value="2">2</SelectItem>
                         <SelectItem value="3">3</SelectItem>
@@ -256,18 +252,15 @@ export default function ListPropertyPage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="price">Price</Label>
-                    <Input id="price" type="number" placeholder="e.g. 450000" required />
+                    <Input id="price" type="number" placeholder="e.g. 4 eth" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
-                    <Select defaultValue="USD">
+                    <Select defaultValue="ETH">
                       <SelectTrigger>
                         <SelectValue placeholder="Select currency" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                        <SelectItem value="GBP">GBP</SelectItem>
                         <SelectItem value="ETH">ETH</SelectItem>
                       </SelectContent>
                     </Select>
@@ -377,27 +370,27 @@ export default function ListPropertyPage() {
         {currentStep === 3 && (
           <div className="space-y-6">
             <Card>
-              <CardHeader>
+              {/* <CardHeader>
                 <CardTitle>Blockchain Details</CardTitle>
                 <CardDescription>Provide information for blockchain verification and tokenization.</CardDescription>
-              </CardHeader>
+              </CardHeader> */}
               <CardContent className="space-y-4">
-                <Alert className="mb-4">
+                {/* <Alert className="mb-4">
                   <AlertTitle>Important Information</AlertTitle>
                   <AlertDescription>
                     Your property will be tokenized on the blockchain, creating a unique digital asset that represents
                     ownership. This ensures transparency and security in all transactions.
                   </AlertDescription>
-                </Alert>
-
+                </Alert> */}
+{/* 
                 <div className="space-y-2">
                   <Label htmlFor="wallet">Wallet Address</Label>
                   <Input id="wallet" placeholder="e.g. 0x1a2b3c4d5e6f..." required />
                   <p className="text-xs text-muted-foreground">
                     This is the wallet that will receive funds when the property is sold.
                   </p>
-                </div>
-
+                </div> */}
+{/* 
                 <div className="space-y-2">
                   <Label>Blockchain Network</Label>
                   <RadioGroup defaultValue="ethereum">
@@ -414,7 +407,7 @@ export default function ListPropertyPage() {
                       <Label htmlFor="solana">Solana</Label>
                     </div>
                   </RadioGroup>
-                </div>
+                </div> */}
 
                 <Separator className="my-4" />
 
@@ -469,13 +462,13 @@ export default function ListPropertyPage() {
                 <CardDescription>Define the terms for your property's smart contract.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="royalty">Future Sale Royalty (%)</Label>
                   <Input id="royalty" type="number" placeholder="e.g. 2.5" min="0" max="10" step="0.1" />
                   <p className="text-xs text-muted-foreground">
                     Percentage you'll receive from future sales of this property (0-10%).
                   </p>
-                </div>
+                </div> */}
 
                 <div className="space-y-2">
                   <Label>Fractional Ownership</Label>
@@ -585,10 +578,10 @@ export default function ListPropertyPage() {
                         <h3 className="font-semibold text-sm text-muted-foreground">Blockchain Network</h3>
                         <p>Ethereum</p>
                       </div>
-                      <div>
+                      {/* <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Future Sale Royalty</h3>
                         <p>2.5%</p>
-                      </div>
+                      </div> */}
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Fractional Ownership</h3>
                         <p>No, sell as a whole property</p>

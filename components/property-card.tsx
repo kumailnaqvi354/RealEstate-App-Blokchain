@@ -31,14 +31,6 @@ export function PropertyCard({ property }: PropertyCardProps) {
             alt={property.title}
             className="object-cover w-full h-full transition-transform hover:scale-105"
           />
-          {property.verified && (
-            <div className="absolute top-2 right-2">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Shield className="h-3 w-3" />
-                Verified
-              </Badge>
-            </div>
-          )}
         </div>
         <CardContent className="p-4">
           <div className="mb-2">
@@ -56,10 +48,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
               <Bed className="h-4 w-4 text-muted-foreground" />
               <span>{property.bedrooms} Beds</span>
             </div>
-            <div className="flex items-center gap-1">
+            {/* <div className="flex items-center gap-1">
               <Bath className="h-4 w-4 text-muted-foreground" />
               <span>{property.bathrooms} Baths</span>
-            </div>
+            </div> */}
             <div className="flex items-center gap-1">
               <Square className="h-4 w-4 text-muted-foreground" />
               <span>{property.area} sqft</span>
