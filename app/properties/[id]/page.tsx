@@ -29,18 +29,6 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
       "/placeholder.svg?height=600&width=800",
       "/placeholder.svg?height=600&width=800",
     ],
-    features: [
-      "Central Air Conditioning",
-      "In-unit Laundry",
-      "Hardwood Floors",
-      "Stainless Steel Appliances",
-      "Walk-in Closet",
-      "Balcony",
-      "Fitness Center",
-      "Rooftop Terrace",
-      "24-hour Concierge",
-      "Pet Friendly",
-    ],
     verified: true,
     tokenId: "0x1a2b3c4d5e6f",
     blockchain: "Ethereum",
@@ -85,14 +73,14 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
             {property.currency} {property.price}
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="flex items-center gap-1">
+            {/* <Badge variant="outline" className="flex items-center gap-1">
               <Shield className="h-3 w-3" />
               Blockchain Verified
-            </Badge>
-            <Badge variant="outline" className="flex items-center gap-1">
+            </Badge> */}
+            {/* <Badge variant="outline" className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               Updated {property.lastUpdated}
-            </Badge>
+            </Badge> */}
           </div>
         </div>
       </div>
@@ -138,7 +126,7 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </TabsContent>
-            <TabsContent value="features" className="p-4 border rounded-md mt-2">
+            {/* <TabsContent value="features" className="p-4 border rounded-md mt-2">
               <h3 className="text-xl font-semibold mb-4">Property Features</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {property.features.map((feature, index) => (
@@ -148,7 +136,7 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
                   </div>
                 ))}
               </div>
-            </TabsContent>
+            </TabsContent> */}
             <TabsContent value="blockchain" className="p-4 border rounded-md mt-2">
               <PropertyBlockchainInfo
                 tokenId={property.tokenId}
@@ -165,7 +153,7 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="md:col-span-1">
-          <div className="border rounded-md p-4">
+          {/* <div className="border rounded-md p-4">
             <h3 className="text-xl font-semibold mb-4">Contact Agent</h3>
             <div className="flex items-center gap-4 mb-4">
               <div className="h-12 w-12 rounded-full bg-muted"></div>
@@ -210,10 +198,10 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
               </div>
               <Button className="w-full">Send Message</Button>
             </form>
-          </div>
+          </div> */}
 
           <div className="border rounded-md p-4 mt-4">
-            <div className="flex justify-between mb-4">
+            {/* <div className="flex justify-between mb-4">
               <Button variant="outline" size="sm" className="gap-1">
                 <Share2 className="h-4 w-4" />
                 Share
@@ -222,9 +210,9 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
                 <Heart className="h-4 w-4" />
                 Save
               </Button>
-            </div>
+            </div> */}
             <Button variant="default" className="w-full">
-              Make an Offer
+              Purchase Property 
             </Button>
           </div>
         </div>

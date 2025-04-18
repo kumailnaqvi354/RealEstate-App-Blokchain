@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { PropertyFilters } from "@/components/property-filters"
 import { PropertyCard } from "@/components/property-card"
 import { Pagination } from "@/components/pagination"
@@ -5,99 +8,34 @@ import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function PropertiesPage() {
-  // Mock property data
-  const properties = [
-    {
-      id: "1",
-      title: "Modern Apartment in Downtown",
-      location: "New York, NY",
-      price: "450,000",
-      currency: "USD",
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 1200,
-      type: "Apartment",
-      image: "/placeholder.svg?height=300&width=400",
-      verified: true,
-      tokenId: "0x1a2b3c4d5e6f",
-      lastUpdated: "2 days ago",
-    },
-    {
-      id: "2",
-      title: "Luxury Villa with Pool",
-      location: "Miami, FL",
-      price: "1,250,000",
-      currency: "USD",
-      bedrooms: 4,
-      bathrooms: 3,
-      area: 3200,
-      type: "Villa",
-      image: "/placeholder.svg?height=300&width=400",
-      verified: true,
-      tokenId: "0x2b3c4d5e6f7g",
-      lastUpdated: "5 days ago",
-    },
-    {
-      id: "3",
-      title: "Cozy Suburban House",
-      location: "Austin, TX",
-      price: "650,000",
-      currency: "USD",
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 2100,
-      type: "House",
-      image: "/placeholder.svg?height=300&width=400",
-      verified: true,
-      tokenId: "0x3c4d5e6f7g8h",
-      lastUpdated: "1 week ago",
-    },
-    {
-      id: "4",
-      title: "Penthouse with City Views",
-      location: "Chicago, IL",
-      price: "850,000",
-      currency: "USD",
-      bedrooms: 3,
-      bathrooms: 3,
-      area: 1800,
-      type: "Penthouse",
-      image: "/placeholder.svg?height=300&width=400",
-      verified: true,
-      tokenId: "0x4d5e6f7g8h9i",
-      lastUpdated: "3 days ago",
-    },
-    {
-      id: "5",
-      title: "Beachfront Condo",
-      location: "San Diego, CA",
-      price: "750,000",
-      currency: "USD",
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 1500,
-      type: "Condo",
-      image: "/placeholder.svg?height=300&width=400",
-      verified: true,
-      tokenId: "0x5e6f7g8h9i0j",
-      lastUpdated: "6 days ago",
-    },
-    {
-      id: "6",
-      title: "Mountain Retreat Cabin",
-      location: "Denver, CO",
-      price: "520,000",
-      currency: "USD",
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 1800,
-      type: "Cabin",
-      image: "/placeholder.svg?height=300&width=400",
-      verified: true,
-      tokenId: "0x6f7g8h9i0j1k",
-      lastUpdated: "2 weeks ago",
-    },
-  ]
+  const [properties, setProperties] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  const fetchProperties = async () => {
+    try {
+      console.log("Fetching properties...")
+      const res = await fetch("/api/property", { cache: "no-store" })
+      const data = await res.json()
+      console.log("Debug data", data?.data);
+      
+
+      if (res.ok) {
+        setProperties(data?.data || [])
+      } else {
+        setError(data.error || "Failed to fetch properties")
+      }
+    } catch (err) {
+      console.error("Fetch error:", err)
+      setError("An unexpected error occurred")
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => {
+
+    fetchProperties()
+  }, [])
 
   return (
     <div className="container px-4 py-8 md:px-6 md:py-12">
@@ -129,16 +67,23 @@ export default function PropertiesPage() {
 
         {/* Property Listings */}
         <div className="lg:col-span-3">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {properties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
-          </div>
+          {loading && <p>Loading properties...</p>}
+          {error && <p className="text-red-500">{error}</p>}
 
-          {/* Pagination */}
-          <div className="mt-8">
-            <Pagination totalPages={10} currentPage={1} />
-          </div>
+          {!loading && !error && (
+            <>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {properties.map((property) => (
+                  <PropertyCard key={property._id} property={property} />
+                ))}
+              </div>
+
+              {/* Pagination (optional) */}
+              <div className="mt-8">
+                <Pagination totalPages={10} currentPage={1} />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

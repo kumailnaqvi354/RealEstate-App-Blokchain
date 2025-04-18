@@ -48,10 +48,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
               <Bed className="h-4 w-4 text-muted-foreground" />
               <span>{property.bedrooms} Beds</span>
             </div>
-            {/* <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1">
               <Bath className="h-4 w-4 text-muted-foreground" />
               <span>{property.bathrooms} Baths</span>
-            </div> */}
+            </div>
             <div className="flex items-center gap-1">
               <Square className="h-4 w-4 text-muted-foreground" />
               <span>{property.area} sqft</span>
@@ -60,8 +60,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </CardContent>
         <CardFooter className="p-4 pt-0 text-xs text-muted-foreground border-t">
           <div className="flex justify-between w-full">
-            <span>Token ID: {property.tokenId.substring(0, 8)}...</span>
-            <span>Updated {property.lastUpdated}</span>
+            {/* <span>Token ID: {property.tokenId.substring(0, 8)}...</span> */}
+            {/* <span>Updated {property.lastUpdated}</span> */}
           </div>
         </CardFooter>
       </Card>

@@ -24,6 +24,11 @@ export default function ListPropertyPage() {
   const [images, setImages] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [fractional, setFractional] = useState("no")
+  const [fractionsOwned, setFractionsOwned] = useState("")
+  const [propertyType, setPropertyType] = useState('individual'); // Default to 'individual'
+
+
 
   const totalSteps = 4
 
@@ -117,10 +122,10 @@ export default function ListPropertyPage() {
             <div
               key={index}
               className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep > index + 1
+                ? "bg-primary text-primary-foreground"
+                : currentStep === index + 1
                   ? "bg-primary text-primary-foreground"
-                  : currentStep === index + 1
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                  : "bg-muted text-muted-foreground"
                 }`}
             >
               {index + 1}
@@ -158,15 +163,16 @@ export default function ListPropertyPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="type">Property Type</Label>
-                    <Select defaultValue="apartment">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select property type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="apartment">Individual</SelectItem>
-                        <SelectItem value="house">Builder (Payment Plan)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <RadioGroup defaultValue="individual" onValueChange={setPropertyType}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="individual" id="individual" />
+                        <Label htmlFor="individual">Individual</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="builder" id="builder" />
+                        <Label htmlFor="builder">Builder</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </div>
 
@@ -382,7 +388,7 @@ export default function ListPropertyPage() {
                     ownership. This ensures transparency and security in all transactions.
                   </AlertDescription>
                 </Alert> */}
-{/* 
+                {/* 
                 <div className="space-y-2">
                   <Label htmlFor="wallet">Wallet Address</Label>
                   <Input id="wallet" placeholder="e.g. 0x1a2b3c4d5e6f..." required />
@@ -390,7 +396,7 @@ export default function ListPropertyPage() {
                     This is the wallet that will receive funds when the property is sold.
                   </p>
                 </div> */}
-{/* 
+                {/* 
                 <div className="space-y-2">
                   <Label>Blockchain Network</Label>
                   <RadioGroup defaultValue="ethereum">
@@ -416,7 +422,7 @@ export default function ListPropertyPage() {
                   <p className="text-sm text-muted-foreground mb-2">
                     Upload documents to verify your ownership of the property.
                   </p>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox id="deed" />
                       <Label htmlFor="deed" className="text-sm">
@@ -441,7 +447,7 @@ export default function ListPropertyPage() {
                         Government-issued ID
                       </Label>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="pt-4">
@@ -455,36 +461,52 @@ export default function ListPropertyPage() {
                 </div>
               </CardContent>
             </Card>
+            {propertyType === 'individual' && (
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Smart Contract Terms</CardTitle>
-                <CardDescription>Define the terms for your property's smart contract.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* <div className="space-y-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Smart Contract Terms</CardTitle>
+                  <CardDescription>Define the terms for your property's smart contract.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* <div className="space-y-2">
                   <Label htmlFor="royalty">Future Sale Royalty (%)</Label>
                   <Input id="royalty" type="number" placeholder="e.g. 2.5" min="0" max="10" step="0.1" />
                   <p className="text-xs text-muted-foreground">
                     Percentage you'll receive from future sales of this property (0-10%).
                   </p>
                 </div> */}
+                  <div className="space-y-2">
+                    <Label>Fractional Ownership</Label>
+                    <RadioGroup defaultValue="no" onValueChange={(val) => setFractional(val)}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="yes" id="fractional-yes" />
+                        <Label htmlFor="fractional-yes">Yes, allow fractional ownership</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="fractional-no" />
+                        <Label htmlFor="fractional-no">No, sell as a whole property</Label>
+                      </div>
+                    </RadioGroup>
 
-                <div className="space-y-2">
-                  <Label>Fractional Ownership</Label>
-                  <RadioGroup defaultValue="no">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="fractional-yes" />
-                      <Label htmlFor="fractional-yes">Yes, allow fractional ownership</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="fractional-no" />
-                      <Label htmlFor="fractional-no">No, sell as a whole property</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </CardContent>
-            </Card>
+                    {/* Show the number of fractions only when fractional ownership is enabled */}
+                    {fractional === 'yes' && (
+                      <div className="pt-2">
+                        <Label htmlFor="fraction-count">Number of fractions owned by seller</Label>
+                        <Input
+                          id="fraction-count"
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 100"
+                          value={fractionsOwned}
+                          onChange={(e) => setFractionsOwned(e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
