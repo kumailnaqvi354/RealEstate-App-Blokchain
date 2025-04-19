@@ -28,6 +28,8 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [filtered, setFiltered] = useState<Property[]>([])
+
   
   const fetchProperties = async () => {
     try {
@@ -49,6 +51,26 @@ export default function PropertiesPage() {
       setLoading(false)
     }
   }
+  const applyFilters = (filters: any) => {
+    let result = [...properties]
+
+    if (filters.priceRange) {
+      result = result.filter(
+        (p: any) => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
+      )
+    }
+
+    if (filters.types?.length) {
+      result = result.filter((p: any) => filters.types.includes(p.type))
+    }
+
+    if (filters.bedrooms?.length) {
+      result = result.filter((p: any) => filters.bedrooms.includes(p.bedrooms))
+    }
+
+    setFiltered(result)
+  }
+  
   useEffect(() => {
 
     fetchProperties()
@@ -79,7 +101,7 @@ export default function PropertiesPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
         {/* Filters */}
         <div className="lg:col-span-1">
-          <PropertyFilters />
+          <PropertyFilters onApply={applyFilters} />
         </div>
 
         {/* Property Listings */}

@@ -31,7 +31,7 @@ export default function ListPropertyPage() {
 
 
   const totalSteps = 4
-
+clear 
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
