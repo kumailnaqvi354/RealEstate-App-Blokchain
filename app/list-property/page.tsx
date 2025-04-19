@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import axios from "axios"
 
 export default function ListPropertyPage() {
   const router = useRouter()
@@ -29,9 +30,13 @@ export default function ListPropertyPage() {
   const [propertyType, setPropertyType] = useState('individual'); // Default to 'individual'
 
 
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [imagesToUpload, setImagesToUpload] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false); // Track upload status
 
   const totalSteps = 4
-clear 
+
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
@@ -45,13 +50,45 @@ clear
       window.scrollTo(0, 0)
     }
   }
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newImages = Array.from(e.target.files).map((file) => URL.createObjectURL(file))
-      setImages([...images, ...newImages])
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    console.log("Selected files:", files); // Debugging line
+    if (files) {
+      // Create a preview of the selected images
+      const imageUrls = Array.from(files).map((file) => URL.createObjectURL(file));
+      setSelectedImages((prevImages) => [...prevImages, ...imageUrls]);
+  
+      // Call upload function for each selected file
+      Array.from(files).forEach((file) => uploadImageToCloud(file));
     }
-  }
+  };
+  
+
+  const uploadImageToCloud = async (file: File) => {
+    setUploading(true);
+    const data = new FormData();
+  
+    console.log("Appending file to FormData:", file); // Debugging line
+    data.append("file", file); // Append the file to FormData
+    data.append("upload_preset", "blockestate"); // Replace with your actual unsigned upload preset
+    data.append("cloud_name", "dud8e4uhb"); // Replace with your actual Cloudinary cloud name
+  
+    // Checking the FormData contents after appending the file
+    console.log("FormData after append:", data); // Debugging line
+  
+    try {
+      const response = await axios.post(
+        "https://api.cloudinary.com/v1_1/dud8e4uhb/image/upload", // Cloudinary's upload endpoint
+        data
+      );
+      console.log("Cloudinary Upload Response:", response.data);
+      setUploading(false);
+      // Here you can store the uploaded image URL or do further handling
+    } catch (error) {
+      console.error("Error uploading to Cloudinary:", error);
+      setUploading(false);
+    }
+  };
 
   const removeImage = (index: number) => {
     const updatedImages = [...images]
@@ -279,96 +316,92 @@ clear
 
         {/* Step 2: Images */}
         {currentStep === 2 && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Property Images</CardTitle>
-                <CardDescription>
-                  Upload high-quality images of your property. You can upload up to 10 images.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <Upload className="h-8 w-8 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold">Drag and drop your images here</h3>
-                    <p className="text-sm text-muted-foreground">or click to browse from your computer</p>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      id="image-upload"
-                      onChange={handleImageUpload}
-                    />
-                    <Label htmlFor="image-upload" className="cursor-pointer">
-                      <Button type="button" variant="outline">
-                        Select Images
-                      </Button>
-                    </Label>
-                  </div>
-                </div>
+          //    <div className="space-y-6">
+          //    <div className="border-2 border-dashed rounded-lg p-6 text-center">
+          //      <div className="flex flex-col items-center justify-center space-y-2">
+          //        <Upload className="h-8 w-8 text-muted-foreground" />
+          //        <h3 className="text-lg font-semibold">Drag and drop your images here</h3>
+          //        <p className="text-sm text-muted-foreground">or click to browse from your computer</p>
+          //        {/* Hidden file input */}
+          //        <Input
+          //          type="file"
+          //          accept="image/*"
+          //          multiple
+          //          className="hidden"
+          //          id="image-upload"
+          //          onChange={handleImageUpload}
+          //        />
+          //        {/* Label to trigger the file input */}
+          //        <Label htmlFor="image-upload" className="cursor-pointer">
+          //          <Button type="button" variant="outline">
+          //            Select Images
+          //          </Button>
+          //        </Label>
+          //      </div>
+          //    </div>
 
-                {images.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Uploaded Images ({images.length}/10)</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {images.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={image || "/placeholder.svg"}
-                            alt={`Property image ${index + 1}`}
-                            className="h-24 w-full object-cover rounded-md"
-                          />
-                          <button
-                            type="button"
-                            className="absolute top-1 right-1 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => removeImage(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                      {images.length < 10 && (
-                        <Label
-                          htmlFor="add-more-images"
-                          className="h-24 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer"
-                        >
-                          <div className="flex flex-col items-center">
-                            <Plus className="h-6 w-6 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground mt-1">Add More</span>
-                          </div>
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            id="add-more-images"
-                            onChange={handleImageUpload}
-                          />
-                        </Label>
-                      )}
+          //    {/* Display uploaded images */}
+          //    {images.length > 0 && (
+          //      <div className="space-y-4">
+          //        <h3 className="font-semibold">Uploaded Images ({images.length}/10)</h3>
+          //        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          //          {images.map((image, index) => (
+          //            <div key={index} className="relative group">
+          //              <img
+          //                src={image || "/placeholder.svg"}
+          //                alt={`Property image ${index + 1}`}
+          //                className="h-24 w-full object-cover rounded-md"
+          //              />
+          //              <button
+          //                type="button"
+          //                className="absolute top-1 right-1 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          //                onClick={() => {
+          //                  setImages(images.filter((_, idx) => idx !== index));
+          //                }}
+          //              >
+          //                <X className="h-4 w-4" />
+          //              </button>
+          //            </div>
+          //          ))}
+          //        </div>
+          //      </div>
+          //    )}
+          //  </div>
+
+          <div>
+            <h2>Select Images to Upload</h2>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageChange}
+            />
+
+            {selectedImages.length > 0 && (
+              <div className="mt-4">
+                <h3>Preview of Selected Images:</h3>
+                <div className="flex flex-wrap gap-4">
+                  {selectedImages.map((image, index) => (
+                    <div key={index} className="w-48 h-48 relative">
+                      <img
+                        src={image}
+                        alt={`Selected Preview ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImages(prevImages => prevImages.filter((_, i) => i !== index))}
+                        className="absolute top-1 right-1 bg-white text-black rounded-full p-1"
+                      >
+                        X
+                      </button>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Image Tips</CardTitle>
-                <CardDescription>Follow these tips to showcase your property in the best light.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="list-disc pl-5 space-y-2 text-sm">
-                  <li>Use high-resolution images (at least 1920x1080 pixels)</li>
-                  <li>Include photos of all rooms, exterior, and special features</li>
-                  <li>Take photos during daylight for natural lighting</li>
-                  <li>Ensure the property is clean and tidy before taking photos</li>
-                  <li>Consider hiring a professional photographer for best results</li>
-                </ul>
-              </CardContent>
-            </Card>
+            {uploading && <p>Uploading...</p>}
           </div>
         )}
 
