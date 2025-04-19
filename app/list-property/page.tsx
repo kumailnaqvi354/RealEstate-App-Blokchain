@@ -30,10 +30,10 @@ export default function ListPropertyPage() {
   const [propertyType, setPropertyType] = useState('individual'); // Default to 'individual'
 
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [imagesToUpload, setImagesToUpload] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false); // Track upload status
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+
 
   const totalSteps = 4
 
@@ -52,7 +52,6 @@ export default function ListPropertyPage() {
   }
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    console.log("Selected files:", files); // Debugging line
     if (files) {
       // Create a preview of the selected images
       const imageUrls = Array.from(files).map((file) => URL.createObjectURL(file));
@@ -60,6 +59,7 @@ export default function ListPropertyPage() {
   
       // Call upload function for each selected file
       Array.from(files).forEach((file) => uploadImageToCloud(file));
+
     }
   };
   
@@ -67,21 +67,21 @@ export default function ListPropertyPage() {
   const uploadImageToCloud = async (file: File) => {
     setUploading(true);
     const data = new FormData();
-  
-    console.log("Appending file to FormData:", file); // Debugging line
     data.append("file", file); // Append the file to FormData
     data.append("upload_preset", "blockestate"); // Replace with your actual unsigned upload preset
     data.append("cloud_name", "dud8e4uhb"); // Replace with your actual Cloudinary cloud name
   
     // Checking the FormData contents after appending the file
-    console.log("FormData after append:", data); // Debugging line
-  
     try {
       const response = await axios.post(
         "https://api.cloudinary.com/v1_1/dud8e4uhb/image/upload", // Cloudinary's upload endpoint
         data
       );
-      console.log("Cloudinary Upload Response:", response.data);
+      const imageUrl = response.data.secure_url;
+  
+      // ✅ Push the URL into the imageUrls state immediately
+      setImageUrls((prev) => [...prev, imageUrl]);
+  
       setUploading(false);
       // Here you can store the uploaded image URL or do further handling
     } catch (error) {

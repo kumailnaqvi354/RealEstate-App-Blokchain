@@ -15,7 +15,7 @@ interface PropertyCardProps {
     bathrooms: number
     area: number
     type: string
-    image: string
+    images: string
     verified: boolean
     tokenId: string
     lastUpdated: string
@@ -28,7 +28,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
       <Card className="overflow-hidden transition-all hover:shadow-md">
         <div className="relative aspect-video overflow-hidden">
           <img
-            src={property.image || "/placeholder.svg"}
+            src={property?.images[0] || "/placeholder.svg"}
             alt={property.title}
             className="object-cover w-full h-full transition-transform hover:scale-105"
           />
