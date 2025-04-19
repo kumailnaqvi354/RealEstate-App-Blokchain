@@ -376,45 +376,7 @@ export default function ListPropertyPage() {
         {currentStep === 3 && (
           <div className="space-y-6">
             <Card>
-              {/* <CardHeader>
-                <CardTitle>Blockchain Details</CardTitle>
-                <CardDescription>Provide information for blockchain verification and tokenization.</CardDescription>
-              </CardHeader> */}
               <CardContent className="space-y-4">
-                {/* <Alert className="mb-4">
-                  <AlertTitle>Important Information</AlertTitle>
-                  <AlertDescription>
-                    Your property will be tokenized on the blockchain, creating a unique digital asset that represents
-                    ownership. This ensures transparency and security in all transactions.
-                  </AlertDescription>
-                </Alert> */}
-                {/* 
-                <div className="space-y-2">
-                  <Label htmlFor="wallet">Wallet Address</Label>
-                  <Input id="wallet" placeholder="e.g. 0x1a2b3c4d5e6f..." required />
-                  <p className="text-xs text-muted-foreground">
-                    This is the wallet that will receive funds when the property is sold.
-                  </p>
-                </div> */}
-                {/* 
-                <div className="space-y-2">
-                  <Label>Blockchain Network</Label>
-                  <RadioGroup defaultValue="ethereum">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="ethereum" id="ethereum" />
-                      <Label htmlFor="ethereum">Ethereum</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="polygon" id="polygon" />
-                      <Label htmlFor="polygon">Polygon</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="solana" id="solana" />
-                      <Label htmlFor="solana">Solana</Label>
-                    </div>
-                  </RadioGroup>
-                </div> */}
-
                 <Separator className="my-4" />
 
                 <div className="space-y-2">
@@ -422,32 +384,6 @@ export default function ListPropertyPage() {
                   <p className="text-sm text-muted-foreground mb-2">
                     Upload documents to verify your ownership of the property.
                   </p>
-                  {/* <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="deed" />
-                      <Label htmlFor="deed" className="text-sm">
-                        Property Deed
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="title" />
-                      <Label htmlFor="title" className="text-sm">
-                        Title Insurance
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="tax" />
-                      <Label htmlFor="tax" className="text-sm">
-                        Property Tax Records
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="id" />
-                      <Label htmlFor="id" className="text-sm">
-                        Government-issued ID
-                      </Label>
-                    </div>
-                  </div> */}
                 </div>
 
                 <div className="pt-4">
@@ -469,13 +405,6 @@ export default function ListPropertyPage() {
                   <CardDescription>Define the terms for your property's smart contract.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* <div className="space-y-2">
-                  <Label htmlFor="royalty">Future Sale Royalty (%)</Label>
-                  <Input id="royalty" type="number" placeholder="e.g. 2.5" min="0" max="10" step="0.1" />
-                  <p className="text-xs text-muted-foreground">
-                    Percentage you'll receive from future sales of this property (0-10%).
-                  </p>
-                </div> */}
                   <div className="space-y-2">
                     <Label>Fractional Ownership</Label>
                     <RadioGroup defaultValue="no" onValueChange={(val) => setFractional(val)}>

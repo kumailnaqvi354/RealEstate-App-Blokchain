@@ -8,7 +8,24 @@ import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState([])
+  interface Property {
+    _id: null | undefined
+    id: string
+    title: string
+    location: string
+    price: string
+    currency: string
+    bedrooms: number
+    bathrooms: number
+    area: number
+    type: string
+    image: string
+    verified: boolean
+    tokenId: string
+    lastUpdated: string
+  }
+
+  const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -74,7 +91,7 @@ export default function PropertiesPage() {
             <>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {properties.map((property) => (
-                  <PropertyCard key={property._id} property={property} />
+                  <PropertyCard key={property?._id} property={property} />
                 ))}
               </div>
 

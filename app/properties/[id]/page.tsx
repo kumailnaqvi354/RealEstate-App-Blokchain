@@ -1,3 +1,4 @@
+'use client'
 import Link from "next/link"
 import { ArrowLeft, MapPin, Bed, Bath, Square, Building, Shield, Clock, Share2, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -7,45 +8,104 @@ import PropertyGallery from "@/components/property-gallery"
 import PropertyMap from "@/components/property-map"
 import PropertyBlockchainInfo from "@/components/property-blockchain-info"
 import RelatedProperties from "@/components/related-properties"
+import { useParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function PropertyPage({ params }: { params: { id: string } }) {
   // Mock property data - in a real app, you would fetch this based on the ID
-  const property = {
-    id: params.id,
-    title: "Modern Apartment in Downtown",
-    description:
-      "This beautiful modern apartment is located in the heart of downtown. It features high ceilings, large windows with plenty of natural light, and premium finishes throughout. The open floor plan is perfect for entertaining, and the building offers amenities including a fitness center, rooftop terrace, and 24-hour concierge service.",
-    location: "123 Main Street, New York, NY 10001",
-    price: "450,000",
-    currency: "USD",
-    bedrooms: 2,
-    bathrooms: 2,
-    area: 1200,
-    type: "Apartment",
-    yearBuilt: 2018,
-    images: [
-      "/placeholder.svg?height=600&width=800",
-      "/placeholder.svg?height=600&width=800",
-      "/placeholder.svg?height=600&width=800",
-      "/placeholder.svg?height=600&width=800",
-    ],
-    verified: true,
-    tokenId: "0x1a2b3c4d5e6f",
-    blockchain: "Ethereum",
-    lastUpdated: "2 days ago",
-    owner: "0x7a8b9c0d1e2f3g4h5i6j",
-    transactionHistory: [
-      { date: "Jan 15, 2024", action: "Listed", price: "450,000", from: "0x7a8b9c0d1e2f3g4h5i6j", to: null },
-      {
-        date: "Dec 10, 2023",
-        action: "Purchased",
-        price: "425,000",
-        from: "0x3g4h5i6j7k8l9m0n1o2p",
-        to: "0x7a8b9c0d1e2f3g4h5i6j",
-      },
-      { date: "Nov 5, 2023", action: "Listed", price: "430,000", from: "0x3g4h5i6j7k8l9m0n1o2p", to: null },
-    ],
-  }
+  // const property = {
+  //   id: "1111",
+  //   title: "Modern Apartment in Downtown",
+  //   description:
+  //     "This beautiful modern apartment is located in the heart of downtown. It features high ceilings, large windows with plenty of natural light, and premium finishes throughout. The open floor plan is perfect for entertaining, and the building offers amenities including a fitness center, rooftop terrace, and 24-hour concierge service.",
+  //   location: "123 Main Street, New York, NY 10001",
+  //   price: "450,000",
+  //   currency: "USD",
+  //   bedrooms: 2,
+  //   bathrooms: 2,
+  //   area: 1200,
+  //   type: "Apartment",
+  //   yearBuilt: 2018,
+  //   images: [
+  //     "/placeholder.svg?height=600&width=800",
+  //     "/placeholder.svg?height=600&width=800",
+  //     "/placeholder.svg?height=600&width=800",
+  //     "/placeholder.svg?height=600&width=800",
+  //   ],
+  //   verified: true,
+  //   tokenId: "0x1a2b3c4d5e6f",
+  //   blockchain: "Ethereum",
+  //   lastUpdated: "2 days ago",
+  //   owner: "0x7a8b9c0d1e2f3g4h5i6j",
+  //   transactionHistory: [
+  //     { date: "Jan 15, 2024", action: "Listed", price: "450,000", from: "0x7a8b9c0d1e2f3g4h5i6j", to: null },
+  //     {
+  //       date: "Dec 10, 2023",
+  //       action: "Purchased",
+  //       price: "425,000",
+  //       from: "0x3g4h5i6j7k8l9m0n1o2p",
+  //       to: "0x7a8b9c0d1e2f3g4h5i6j",
+  //     },
+  //     { date: "Nov 5, 2023", action: "Listed", price: "430,000", from: "0x3g4h5i6j7k8l9m0n1o2p", to: null },
+  //   ],
+  // }
+
+type Property = {
+  _id: string;
+  title: string;
+  description: string;
+  price: number;
+  location: string;
+  currency: string;
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
+  type: string;
+  images: string[];
+  verified: boolean;
+  tokenId: string;
+  blockchain: string;
+  lastUpdated: string;
+  owner: string;
+  transactionHistory: {
+    date: string;
+    action: string;
+    price: number;
+    from: string | null;
+    to: string | null;
+  }[];
+
+  // add more fields as needed
+};
+  const [property, setProperty] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+
+  const routerParams = useParams();
+  const getData = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/property/${routerParams?.id}`);
+      if (!res.ok) throw new Error("Failed to fetch property");
+
+      const data = await res.json();
+      // console.log(data);
+      setProperty(data?.data);
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+
+    if (routerParams?.id) {
+      getData();
+    }
+  }, []);
+
 
   return (
     <div className="container px-4 py-8 md:px-6 md:py-12">
@@ -62,15 +122,15 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
       {/* Property Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">{property.title}</h1>
+          <h1 className="text-3xl font-bold">{property?.title}</h1>
           <div className="flex items-center mt-2 text-muted-foreground">
             <MapPin className="h-4 w-4 mr-1" />
-            <span>{property.location}</span>
+            <span>{property?.location}</span>
           </div>
         </div>
         <div className="flex flex-col items-start md:items-end gap-2">
           <div className="text-3xl font-bold">
-            {property.currency} {property.price}
+            {property?.currency} {property?.price}
           </div>
           <div className="flex items-center gap-2">
             {/* <Badge variant="outline" className="flex items-center gap-1">
@@ -86,7 +146,7 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Property Gallery */}
-      <PropertyGallery images={property.images} />
+      <PropertyGallery images={property?.images || []} />
 
       {/* Property Details */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
@@ -100,29 +160,29 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
             </TabsList>
             <TabsContent value="details" className="p-4 border rounded-md mt-2">
               <h3 className="text-xl font-semibold mb-4">Property Description</h3>
-              <p className="text-muted-foreground mb-6">{property.description}</p>
+              <p className="text-muted-foreground mb-6">{property?.description}</p>
 
               <h3 className="text-xl font-semibold mb-4">Property Details</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="flex flex-col items-center p-4 border rounded-md">
                   <Bed className="h-5 w-5 mb-2" />
                   <span className="text-sm text-muted-foreground">Bedrooms</span>
-                  <span className="font-semibold">{property.bedrooms}</span>
+                  <span className="font-semibold">{property?.bedrooms}</span>
                 </div>
                 <div className="flex flex-col items-center p-4 border rounded-md">
                   <Bath className="h-5 w-5 mb-2" />
                   <span className="text-sm text-muted-foreground">Bathrooms</span>
-                  <span className="font-semibold">{property.bathrooms}</span>
+                  <span className="font-semibold">{property?.bathrooms}</span>
                 </div>
                 <div className="flex flex-col items-center p-4 border rounded-md">
                   <Square className="h-5 w-5 mb-2" />
                   <span className="text-sm text-muted-foreground">Square Feet</span>
-                  <span className="font-semibold">{property.area}</span>
+                  <span className="font-semibold">{property?.area}</span>
                 </div>
                 <div className="flex flex-col items-center p-4 border rounded-md">
                   <Building className="h-5 w-5 mb-2" />
                   <span className="text-sm text-muted-foreground">Property Type</span>
-                  <span className="font-semibold">{property.type}</span>
+                  <span className="font-semibold">{property?.type}</span>
                 </div>
               </div>
             </TabsContent>
@@ -139,15 +199,21 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
             </TabsContent> */}
             <TabsContent value="blockchain" className="p-4 border rounded-md mt-2">
               <PropertyBlockchainInfo
-                tokenId={property.tokenId}
-                blockchain={property.blockchain}
-                owner={property.owner}
-                transactionHistory={property.transactionHistory}
+                tokenId={property?.tokenId || ""}
+                blockchain={property?.blockchain || ""}
+                owner={property?.owner || ""}
+                transactionHistory={property?.transactionHistory?.map(({ date, action, price, from, to }) => ({
+                  date,
+                  action,
+                  price: price.toString(),
+                  from,
+                  to,
+                })) || []}
               />
             </TabsContent>
             <TabsContent value="location" className="p-4 border rounded-md mt-2">
               <h3 className="text-xl font-semibold mb-4">Location</h3>
-              <PropertyMap location={property.location} />
+              <PropertyMap location={property?.location || ""} />
             </TabsContent>
           </Tabs>
         </div>
@@ -219,10 +285,10 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Related Properties */}
-      <div className="mt-12">
+      {/* <div className="mt-12">
         <h2 className="text-2xl font-bold mb-6">Similar Properties</h2>
         <RelatedProperties propertyId={params.id} />
-      </div>
+      </div> */}
     </div>
   )
 }

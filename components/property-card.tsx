@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 
 interface PropertyCardProps {
   property: {
+    _id: null | undefined
     id: string
     title: string
     location: string
@@ -23,7 +24,7 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property }: PropertyCardProps) {
   return (
-    <Link href={`/properties/${property.id}`}>
+    <Link href={`/properties/${property._id}`}>
       <Card className="overflow-hidden transition-all hover:shadow-md">
         <div className="relative aspect-video overflow-hidden">
           <img
