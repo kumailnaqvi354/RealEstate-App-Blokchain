@@ -50,33 +50,34 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
   //   ],
   // }
 
-type Property = {
-  _id: string;
-  title: string;
-  description: string;
-  price: number;
-  location: string;
-  currency: string;
-  bedrooms: number;
-  bathrooms: number;
-  area: number;
-  type: string;
-  images: string[];
-  verified: boolean;
-  tokenId: string;
-  blockchain: string;
-  lastUpdated: string;
-  owner: string;
-  transactionHistory: {
-    date: string;
-    action: string;
+  type Property = {
+    _id: string;
+    title: string;
+    description: string;
     price: number;
-    from: string | null;
-    to: string | null;
-  }[];
+    location: string;
+    currency: string;
+    bedrooms: number;
+    bathrooms: number;
+    area: number;
+    type: string;
+    images: string[];
+    verified: boolean;
+    tokenId: string;
+    blockchain: string;
+    lastUpdated: string;
+    owner: string;
+    documents: string;
+    transactionHistory: {
+      date: string;
+      action: string;
+      price: number;
+      from: string | null;
+      to: string | null;
+    }[];
 
-  // add more fields as needed
-};
+    // add more fields as needed
+  };
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -90,7 +91,6 @@ type Property = {
       if (!res.ok) throw new Error("Failed to fetch property");
 
       const data = await res.json();
-      // console.log(data);
       setProperty(data?.data);
     } catch (err: any) {
       setError(err.message || "An error occurred");
@@ -202,6 +202,7 @@ type Property = {
                 tokenId={property?.tokenId || ""}
                 blockchain={property?.blockchain || ""}
                 owner={property?.owner || ""}
+                deedDocument={property?.documents || ""}
                 transactionHistory={property?.transactionHistory?.map(({ date, action, price, from, to }) => ({
                   date,
                   action,
@@ -278,7 +279,7 @@ type Property = {
               </Button>
             </div> */}
             <Button variant="default" className="w-full">
-              Purchase Property 
+              Purchase Property
             </Button>
           </div>
         </div>

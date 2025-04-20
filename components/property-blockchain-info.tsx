@@ -5,6 +5,7 @@ interface PropertyBlockchainInfoProps {
   tokenId: string
   blockchain: string
   owner: string
+  deedDocument: string
   transactionHistory: {
     date: string
     action: string
@@ -19,6 +20,7 @@ export default function PropertyBlockchainInfo({
   blockchain,
   owner,
   transactionHistory,
+  deedDocument,
 }: PropertyBlockchainInfoProps) {
   return (
     <div className="space-y-6">
@@ -50,7 +52,17 @@ export default function PropertyBlockchainInfo({
               </a>
             </div>
           </div>
+          <div className="p-4 border rounded-md md:col-span-2">
+            <div className="text-sm text-muted-foreground">Verification Document</div>
+            <div className="font-mono flex items-center gap-2">
+              {owner}
+              <a href={`https://gateway.pinata.cloud/ipfs/${deedDocument}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
         </div>
+
       </div>
 
       <div>

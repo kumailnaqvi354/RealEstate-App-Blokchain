@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import axios from "axios"
+import { uploadFileToIPFS } from "@/lib/ipfsUploader"
 
 export default function ListPropertyPage() {
   const router = useRouter()
@@ -44,7 +45,7 @@ export default function ListPropertyPage() {
     zip: '',
     price: '',
     currency: 'ETH',
-    documents:"IPFS"
+    documents: "IPFS"
     // Add other fields as needed
   });
 
@@ -103,6 +104,21 @@ export default function ListPropertyPage() {
       setUploading(false);
     }
   };
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      let uploadedHashes: string = "";
+      for (const file of files) {
+        try {
+          const ipfsHash = await uploadFileToIPFS(file);
+          uploadedHashes = ipfsHash;
+        } catch (error) {
+          alert("Failed to upload a file to IPFS.");
+        }
+      }
+      setFormData({ ...formData, documents: uploadedHashes }); // Update the state with the uploaded IPFS hashes
+    }
+  };
 
   const removeImage = (index: number) => {
     const updatedImages = [...images]
@@ -111,7 +127,7 @@ export default function ListPropertyPage() {
   }
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-  
+
     // Combine all data
     const dataToSubmit = {
       ...formData,
@@ -120,7 +136,7 @@ export default function ListPropertyPage() {
       fractional,
       fractionsOwned: fractional === "yes" ? fractionsOwned : null,
     };
-  
+
     try {
       const response = await fetch('/api/property', {
         method: 'POST',
@@ -129,11 +145,11 @@ export default function ListPropertyPage() {
         },
         body: JSON.stringify(dataToSubmit),
       });
-  
+
       if (!response.ok) {
         throw new Error('Failed to submit property');
       }
-  
+
       const result = await response.json();
       console.log('Property submitted successfully:', result);
       router.push('/properties');
@@ -142,7 +158,7 @@ export default function ListPropertyPage() {
       console.error('Error submitting property:', error);
     }
   };
-  
+
   if (isSuccess) {
     return (
       <div className="container px-4 py-12 md:px-6 md:py-16 max-w-4xl mx-auto">
@@ -480,11 +496,27 @@ export default function ListPropertyPage() {
                   <Label htmlFor="document-upload" className="block mb-2">
                     Upload Documents
                   </Label>
-                  <Input type="file" id="document-upload" accept=".pdf,.doc,.docx,.jpg,.png" multiple />
+                  <Input type="file" id="document-upload" accept=".pdf,.doc,.docx,.jpg,.png" onChange={handleFileUpload}
+                  />
                   <p className="text-xs text-muted-foreground mt-1">
                     Accepted formats: PDF, DOC, DOCX, JPG, PNG (Max 10MB per file)
                   </p>
+
                 </div>
+                <div className="mt-4">
+                  <h3 className="font-medium">Uploaded Documents:</h3>
+
+                  <a
+                    href={`https://gateway.pinata.cloud/ipfs/${formData?.documents}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500"
+                  >
+                    View Document
+                  </a>
+
+                </div>
+
               </CardContent>
             </Card>
             {propertyType === 'individual' && (
