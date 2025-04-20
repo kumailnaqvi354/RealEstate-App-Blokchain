@@ -617,42 +617,39 @@ export default function ListPropertyPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Property Title</h3>
-                        <p>Modern Apartment in Downtown</p>
+                        <p>{formData?.title}</p>
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Property Type</h3>
-                        <p>Apartment</p>
+                        <p>{propertyType}</p>
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Bedrooms</h3>
-                        <p>2</p>
+                        <p>{formData?.bedrooms}</p>
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Bathrooms</h3>
-                        <p>2</p>
+                        <p>{formData?.bathrooms}</p>
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Area</h3>
-                        <p>1,200 sq ft</p>
+                        <p>{formData?.area}</p>
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Price</h3>
-                        <p>USD 450,000</p>
+                        <p>{formData?.price} {formData?.currency}</p>
                       </div>
                     </div>
 
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground">Address</h3>
-                      <p>123 Main Street, New York, NY 10001</p>
+                      <p>{formData?.address}</p>
                     </div>
 
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground">Description</h3>
                       <p className="text-sm">
-                        This beautiful modern apartment is located in the heart of downtown. It features high ceilings,
-                        large windows with plenty of natural light, and premium finishes throughout. The open floor plan
-                        is perfect for entertaining, and the building offers amenities including a fitness center,
-                        rooftop terrace, and 24-hour concierge service.
+                       {formData?.description}
                       </p>
                     </div>
                   </TabsContent>
@@ -692,7 +689,11 @@ export default function ListPropertyPage() {
                       </div> */}
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Fractional Ownership</h3>
-                        <p>No, sell as a whole property</p>
+                        <p>{fractional}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Seller Owned</h3>
+                        <p>{fractionsOwned}</p>
                       </div>
                     </div>
 
@@ -700,8 +701,7 @@ export default function ListPropertyPage() {
                       <h3 className="font-semibold text-sm text-muted-foreground">Verification Documents</h3>
                       <ul className="list-disc pl-5 text-sm">
                         <li>Property Deed</li>
-                        <li>Title Insurance</li>
-                        <li>Government-issued ID</li>
+                        <li>{formData?.documents}</li>
                       </ul>
                     </div>
                   </TabsContent>
