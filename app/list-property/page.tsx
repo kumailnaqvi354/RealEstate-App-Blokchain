@@ -44,6 +44,8 @@ export default function ListPropertyPage() {
     state: '',
     zip: '',
     price: '',
+    downPayment: "",
+    monthlyInstallment: "",
     currency: 'ETH',
     documents: "IPFS"
     // Add other fields as needed
@@ -252,8 +254,7 @@ export default function ListPropertyPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="type">Property Type</Label>
-                    <RadioGroup defaultValue="individual" onValueChange={setPropertyType}>
+                    <RadioGroup value={propertyType} onValueChange={setPropertyType} className="flex items-center space-x-4">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="individual" id="individual" />
                         <Label htmlFor="individual">Individual</Label>
@@ -263,8 +264,41 @@ export default function ListPropertyPage() {
                         <Label htmlFor="builder">Builder</Label>
                       </div>
                     </RadioGroup>
+
+                    {propertyType === "builder" && (
+                      <div className="grid gap-4 mt-4">
+                        <div>
+                          <Label htmlFor="downPayment">Down Payment (ETH)</Label>
+                          <Input
+                            type="number"
+                            id="downPayment"
+                            min="0"
+                            value={formData.downPayment}
+                            onChange={(e) =>
+                              setFormData((prev) => ({ ...prev, downPayment: e.target.value }))
+                            }
+                            placeholder="e.g. 10"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="monthlyInstallment">Monthly Installment (ETH)</Label>
+                          <Input
+                            type="number"
+                            id="monthlyInstallment"
+                            min="0"
+                            value={formData.monthlyInstallment}
+                            onChange={(e) =>
+                              setFormData((prev) => ({ ...prev, monthlyInstallment: e.target.value }))
+                            }
+                            placeholder="e.g. 1"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
+
                 </div>
+
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
@@ -314,7 +348,7 @@ export default function ListPropertyPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="area">Area (sq ft)</Label>
-                    <Input value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} id="area" type="number" placeholder="e.g. 1200" required />
+                    <Input value={formData.area} min="0" onChange={(e) => setFormData({ ...formData, area: e.target.value })} id="area" type="number" placeholder="e.g. 1200" required />
                   </div>
                 </div>
               </CardContent>
@@ -366,7 +400,8 @@ export default function ListPropertyPage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="price">Price</Label>
-                    <Input id="price" value={formData.price}
+                    <Input id="price" min="0"
+                      value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })} type="number" placeholder="e.g. 4 eth" required />
                   </div>
                   <div className="space-y-2">
