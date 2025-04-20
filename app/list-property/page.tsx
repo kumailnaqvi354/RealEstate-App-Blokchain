@@ -44,8 +44,8 @@ export default function ListPropertyPage() {
     state: '',
     zip: '',
     price: '',
-    downPayment: "",
-    monthlyInstallment: "",
+    downPayment: '',
+    monthlyInstallment: '',
     currency: 'ETH',
     documents: "IPFS"
     // Add other fields as needed

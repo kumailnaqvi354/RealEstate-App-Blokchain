@@ -10,46 +10,9 @@ import PropertyBlockchainInfo from "@/components/property-blockchain-info"
 import RelatedProperties from "@/components/related-properties"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
+import { deposit } from "viem/zksync"
 
 export default function PropertyPage({ params }: { params: { id: string } }) {
-  // Mock property data - in a real app, you would fetch this based on the ID
-  // const property = {
-  //   id: "1111",
-  //   title: "Modern Apartment in Downtown",
-  //   description:
-  //     "This beautiful modern apartment is located in the heart of downtown. It features high ceilings, large windows with plenty of natural light, and premium finishes throughout. The open floor plan is perfect for entertaining, and the building offers amenities including a fitness center, rooftop terrace, and 24-hour concierge service.",
-  //   location: "123 Main Street, New York, NY 10001",
-  //   price: "450,000",
-  //   currency: "USD",
-  //   bedrooms: 2,
-  //   bathrooms: 2,
-  //   area: 1200,
-  //   type: "Apartment",
-  //   yearBuilt: 2018,
-  //   images: [
-  //     "/placeholder.svg?height=600&width=800",
-  //     "/placeholder.svg?height=600&width=800",
-  //     "/placeholder.svg?height=600&width=800",
-  //     "/placeholder.svg?height=600&width=800",
-  //   ],
-  //   verified: true,
-  //   tokenId: "0x1a2b3c4d5e6f",
-  //   blockchain: "Ethereum",
-  //   lastUpdated: "2 days ago",
-  //   owner: "0x7a8b9c0d1e2f3g4h5i6j",
-  //   transactionHistory: [
-  //     { date: "Jan 15, 2024", action: "Listed", price: "450,000", from: "0x7a8b9c0d1e2f3g4h5i6j", to: null },
-  //     {
-  //       date: "Dec 10, 2023",
-  //       action: "Purchased",
-  //       price: "425,000",
-  //       from: "0x3g4h5i6j7k8l9m0n1o2p",
-  //       to: "0x7a8b9c0d1e2f3g4h5i6j",
-  //     },
-  //     { date: "Nov 5, 2023", action: "Listed", price: "430,000", from: "0x3g4h5i6j7k8l9m0n1o2p", to: null },
-  //   ],
-  // }
-
   type Property = {
     _id: string;
     title: string;
@@ -68,6 +31,9 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
     lastUpdated: string;
     owner: string;
     documents: string;
+    fractionalOwnership?: boolean;
+    ownerNumberOfFraction?: number;
+    depositPaid?: boolean;
     transactionHistory: {
       date: string;
       action: string;
@@ -81,6 +47,8 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [fractionCount, setFractionCount] = useState(1);
+
 
 
   const routerParams = useParams();
@@ -92,6 +60,7 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
 
       const data = await res.json();
       setProperty(data?.data);
+
     } catch (err: any) {
       setError(err.message || "An error occurred");
     } finally {
@@ -133,14 +102,6 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
             {property?.currency} {property?.price}
           </div>
           <div className="flex items-center gap-2">
-            {/* <Badge variant="outline" className="flex items-center gap-1">
-              <Shield className="h-3 w-3" />
-              Blockchain Verified
-            </Badge> */}
-            {/* <Badge variant="outline" className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Updated {property.lastUpdated}
-            </Badge> */}
           </div>
         </div>
       </div>
@@ -186,17 +147,6 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </TabsContent>
-            {/* <TabsContent value="features" className="p-4 border rounded-md mt-2">
-              <h3 className="text-xl font-semibold mb-4">Property Features</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {property.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-primary"></div>
-                    <span>{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </TabsContent> */}
             <TabsContent value="blockchain" className="p-4 border rounded-md mt-2">
               <PropertyBlockchainInfo
                 tokenId={property?.tokenId || ""}
@@ -219,77 +169,61 @@ export default function PropertyPage({ params }: { params: { id: string } }) {
           </Tabs>
         </div>
 
-        <div className="md:col-span-1">
-          {/* <div className="border rounded-md p-4">
-            <h3 className="text-xl font-semibold mb-4">Contact Agent</h3>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 rounded-full bg-muted"></div>
-              <div>
-                <div className="font-semibold">John Smith</div>
-                <div className="text-sm text-muted-foreground">Real Estate Agent</div>
-              </div>
+        <div className="md:col-span-1"> {property?.type?.toLowerCase() === "builder" ? (
+          <div className="border rounded-md p-4 mt-4 space-y-4">
+            <h3 className="text-md font-semibold">Builder Property</h3>
+            {!property?.depositPaid ? (
+              <>
+                <p className="text-sm text-muted-foreground">Deposit required to proceed.</p>
+                <Button variant="default" className="w-full">
+                  Pay Deposit
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">Deposit paid. Continue paying installments.</p>
+                <Button variant="default" className="w-full">
+                  Pay Installment
+                </Button>
+              </>
+            )}
+          </div>
+        ) : property?.fractionalOwnership ? (
+          <div className="border rounded-md p-4 mt-4 space-y-4">
+            <div>
+              <h3 className="text-md font-semibold">Fractional Ownership</h3>
+              <p className="text-sm text-muted-foreground">
+                {100 - parseInt(property?.ownerNumberOfFraction?.toString() || "0")} fractions available
+              </p>
             </div>
-            <form className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-1">
-                  Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  placeholder="Your name"
-                />
-              </div>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-1">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  placeholder="Your email"
-                />
-              </div>
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium mb-1">
-                  Message
-                </label>
-                <textarea
-                  id="message"
-                  rows={4}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  placeholder="I'm interested in this property..."
-                ></textarea>
-              </div>
-              <Button className="w-full">Send Message</Button>
-            </form>
-          </div> */}
-
+            <div>
+              <label htmlFor="fractionCount" className="block text-sm font-medium mb-1">
+                Number of Fractions
+              </label>
+              <input
+                id="fractionCount"
+                type="number"
+                min={1}
+                max={100 - parseInt(property?.ownerNumberOfFraction?.toString() || "0")}
+                value={fractionCount}
+                onChange={(e) => setFractionCount(Number(e.target.value))}
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                placeholder="Enter amount"
+              />
+            </div>
+            <Button variant="default" className="w-full">
+              Purchase {fractionCount} {fractionCount > 1 ? "fractions" : "fraction"}
+            </Button>
+          </div>
+        ) : (
           <div className="border rounded-md p-4 mt-4">
-            {/* <div className="flex justify-between mb-4">
-              <Button variant="outline" size="sm" className="gap-1">
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1">
-                <Heart className="h-4 w-4" />
-                Save
-              </Button>
-            </div> */}
             <Button variant="default" className="w-full">
               Purchase Property
             </Button>
           </div>
+        )}
         </div>
       </div>
-
-      {/* Related Properties */}
-      {/* <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-6">Similar Properties</h2>
-        <RelatedProperties propertyId={params.id} />
-      </div> */}
     </div>
   )
 }
