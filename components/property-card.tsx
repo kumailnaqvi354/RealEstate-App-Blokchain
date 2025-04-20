@@ -28,8 +28,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
       <Card className="overflow-hidden transition-all hover:shadow-md">
         <div className="relative aspect-video overflow-hidden">
           <img
-            src={property?.images[0] || "/placeholder.svg"}
-            alt={property.title}
+            src={property?.images?.[0] ?? "/placeholder.svg"}
+            alt={property?.title ?? "Property image"}
             className="object-cover w-full h-full transition-transform hover:scale-105"
           />
         </div>

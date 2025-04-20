@@ -28,11 +28,25 @@ export default function ListPropertyPage() {
   const [fractional, setFractional] = useState("no")
   const [fractionsOwned, setFractionsOwned] = useState("")
   const [propertyType, setPropertyType] = useState('individual'); // Default to 'individual'
-
-
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false); // Track upload status
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    bedrooms: '2',
+    bathrooms: '2',
+    area: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    price: '',
+    currency: 'ETH',
+    documents:"IPFS"
+    // Add other fields as needed
+  });
 
 
   const totalSteps = 4
@@ -56,13 +70,13 @@ export default function ListPropertyPage() {
       // Create a preview of the selected images
       const imageUrls = Array.from(files).map((file) => URL.createObjectURL(file));
       setSelectedImages((prevImages) => [...prevImages, ...imageUrls]);
-  
+
       // Call upload function for each selected file
       Array.from(files).forEach((file) => uploadImageToCloud(file));
 
     }
   };
-  
+
 
   const uploadImageToCloud = async (file: File) => {
     setUploading(true);
@@ -70,7 +84,7 @@ export default function ListPropertyPage() {
     data.append("file", file); // Append the file to FormData
     data.append("upload_preset", "blockestate"); // Replace with your actual unsigned upload preset
     data.append("cloud_name", "dud8e4uhb"); // Replace with your actual Cloudinary cloud name
-  
+
     // Checking the FormData contents after appending the file
     try {
       const response = await axios.post(
@@ -78,10 +92,10 @@ export default function ListPropertyPage() {
         data
       );
       const imageUrl = response.data.secure_url;
-  
+
       // ✅ Push the URL into the imageUrls state immediately
       setImageUrls((prev) => [...prev, imageUrl]);
-  
+
       setUploading(false);
       // Here you can store the uploaded image URL or do further handling
     } catch (error) {
@@ -95,23 +109,40 @@ export default function ListPropertyPage() {
     updatedImages.splice(index, 1)
     setImages(updatedImages)
   }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsSuccess(true)
-
-      // Redirect to properties page after success
-      setTimeout(() => {
-        router.push("/properties")
-      }, 3000)
-    }, 2000)
-  }
-
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+  
+    // Combine all data
+    const dataToSubmit = {
+      ...formData,
+      images: imageUrls,
+      propertyType,
+      fractional,
+      fractionsOwned: fractional === "yes" ? fractionsOwned : null,
+    };
+  
+    try {
+      const response = await fetch('/api/property', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSubmit),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to submit property');
+      }
+  
+      const result = await response.json();
+      console.log('Property submitted successfully:', result);
+      router.push('/properties');
+      // Optionally reset form here
+    } catch (error) {
+      console.error('Error submitting property:', error);
+    }
+  };
+  
   if (isSuccess) {
     return (
       <div className="container px-4 py-12 md:px-6 md:py-16 max-w-4xl mx-auto">
@@ -196,7 +227,13 @@ export default function ListPropertyPage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="title">Property Title</Label>
-                    <Input id="title" placeholder="e.g. Modern Apartment in Downtown" required />
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="e.g. Modern Apartment in Downtown"
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="type">Property Type</Label>
@@ -215,18 +252,27 @@ export default function ListPropertyPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" placeholder="Describe your property in detail..." rows={5} required />
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Describe your property in detail..."
+                    rows={5}
+                    required
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="bedrooms">Bedrooms</Label>
-                    <Select defaultValue="2">
+                    <Select
+                      value={formData.bedrooms}
+                      onValueChange={(value) => setFormData({ ...formData, bedrooms: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select number" />
                       </SelectTrigger>
                       <SelectContent>
-                        {/* <SelectItem value="0">Studio</SeclectItem> */}
                         <SelectItem value="1">1</SelectItem>
                         <SelectItem value="2">2</SelectItem>
                         <SelectItem value="3">3</SelectItem>
@@ -252,7 +298,7 @@ export default function ListPropertyPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="area">Area (sq ft)</Label>
-                    <Input id="area" type="number" placeholder="e.g. 1200" required />
+                    <Input value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} id="area" type="number" placeholder="e.g. 1200" required />
                   </div>
                 </div>
               </CardContent>
@@ -266,21 +312,30 @@ export default function ListPropertyPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="address">Street Address</Label>
-                  <Input id="address" placeholder="e.g. 123 Main Street" required />
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="e.g. 123 Main Street"
+                    required
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
-                    <Input id="city" placeholder="e.g. New York" required />
+                    <Input id="city" value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="e.g. New York" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
-                    <Input id="state" placeholder="e.g. NY" required />
+                    <Input id="state" value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })} placeholder="e.g. NY" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="zip">ZIP Code</Label>
-                    <Input id="zip" placeholder="e.g. 10001" required />
+                    <Input id="zip" value={formData.zip}
+                      onChange={(e) => setFormData({ ...formData, zip: e.target.value })} placeholder="e.g. 10001" required />
                   </div>
                 </div>
               </CardContent>
@@ -295,11 +350,13 @@ export default function ListPropertyPage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="price">Price</Label>
-                    <Input id="price" type="number" placeholder="e.g. 4 eth" required />
+                    <Input id="price" value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })} type="number" placeholder="e.g. 4 eth" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
-                    <Select defaultValue="ETH">
+                    <Select value={formData.currency}
+                      onValueChange={(value) => setFormData({ ...formData, currency: value })} defaultValue="ETH">
                       <SelectTrigger>
                         <SelectValue placeholder="Select currency" />
                       </SelectTrigger>

@@ -19,7 +19,7 @@ export default function PropertiesPage() {
     bathrooms: number
     area: number
     type: string
-    image: string
+    images: string
     verified: boolean
     tokenId: string
     lastUpdated: string
@@ -30,14 +30,14 @@ export default function PropertiesPage() {
   const [error, setError] = useState<string | null>(null)
   const [filtered, setFiltered] = useState<Property[]>([])
 
-  
+
   const fetchProperties = async () => {
     try {
       console.log("Fetching properties...")
       const res = await fetch("/api/property", { cache: "no-store" })
       const data = await res.json()
       console.log("Debug data", data?.data);
-      
+
 
       if (res.ok) {
         setProperties(data?.data || [])
@@ -70,7 +70,7 @@ export default function PropertiesPage() {
 
     setFiltered(result)
   }
-  
+
   useEffect(() => {
 
     fetchProperties()
