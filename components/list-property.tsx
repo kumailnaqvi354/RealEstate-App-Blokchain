@@ -19,8 +19,8 @@ import { Separator } from "@/components/ui/separator"
 import axios from "axios"
 import { uploadFileToIPFS } from "@/lib/ipfsUploader"
 import { useEthersProvider, useEthersSigner } from "@/lib/ether-provider"
-import { config } from "@/lib/web3-config"
-import { ethers, formatEther, parseUnits } from 'ethers';
+import { ethers, formatEther, formatUnits, parseUnits } from 'ethers';
+import { REAL_ESTATE_CONTRACT_ABI, REAL_ESTATE_CONTRACT_ADDRESS } from "@/lib/contract"
 
 
 
@@ -160,6 +160,8 @@ export default function ListProperty() {
 
       const result = await response.json();
       console.log('Property submitted successfully:', result);
+      await handleAddProperty()
+      console.log("Property added to blockchain successfully");
       router.push('/properties');
       // Optionally reset form here
     } catch (error) {
@@ -167,13 +169,42 @@ export default function ListProperty() {
     }
   };
 
+  const handleAddProperty = async () => {
+    console.log("Adding property to blockchain...");
+    try {
+      if (!signer) {
+        return console.log("Wallet Account not connected!")
+      }
+      const balance = await provider?.getBalance(signer?.address?.toString() || "");
+      const formattedBalance = formatEther(balance?.toString() || "0");
+      console.log("Balance:", formattedBalance);
+      const _contract = new ethers.Contract(REAL_ESTATE_CONTRACT_ADDRESS, REAL_ESTATE_CONTRACT_ABI, provider) as ethers.Contract & { listProperty: (...args: any[]) => Promise<any> };
+      const contract = _contract.connect(signer || "") as typeof _contract;
+      console.log("Contract:", contract);
+      let builder = false;
+      let numberOfinstalment = 0;
+      if (propertyType === "builder") {
+        builder = true;
+        numberOfinstalment = (parseInt(formData?.price) - parseInt(formData?.downPayment)) / parseInt(formData?.monthlyInstallment);
+
+      }
+      const tx = await contract?.listProperty(formData?.address.toString(), formatUnits(formData?.price?.toString(), 18), formData?.documents, builder, formatUnits(formData?.downPayment?.toString(), 18), formatUnits(formData?.monthlyInstallment?.toString(), 18), numberOfinstalment)
+      await tx.wait();
+      console.log("Transaction:", tx);
+
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+    }
+
+  }
 
   useEffect(() => {
     if (signer) {
       console.log("Signer is available", signer);
     }
+    handleAddProperty()
 
-  }, [])
+  }, [signer])
 
   if (isSuccess) {
     return (
@@ -197,519 +228,519 @@ export default function ListProperty() {
     )
   }
   return (
-        <div className="container px-4 py-8 md:px-6 md:py-12 max-w-4xl mx-auto">
-          <div className="mb-6">
-            <Link href="/properties">
-              <Button variant="ghost" size="sm" className="gap-1">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Listings
-              </Button>
-            </Link>
-          </div>
+    <div className="container px-4 py-8 md:px-6 md:py-12 max-w-4xl mx-auto">
+      <div className="mb-6">
+        <Link href="/properties">
+          <Button variant="ghost" size="sm" className="gap-1">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Listings
+          </Button>
+        </Link>
+      </div>
 
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-4">List Your Property</h1>
-            <p className="text-muted-foreground">
-              Complete the form below to list your property on our blockchain-powered marketplace.
-            </p>
-          </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">List Your Property</h1>
+        <p className="text-muted-foreground">
+          Complete the form below to list your property on our blockchain-powered marketplace.
+        </p>
+      </div>
 
-          {/* Progress Indicator */}
-          <div className="mb-8">
-            <div className="flex justify-between mb-2">
-              {Array.from({ length: totalSteps }).map((_, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep > index + 1
-                    ? "bg-primary text-primary-foreground"
-                    : currentStep === index + 1
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                    }`}
-                >
-                  {index + 1}
+      {/* Progress Indicator */}
+      <div className="mb-8">
+        <div className="flex justify-between mb-2">
+          {Array.from({ length: totalSteps }).map((_, index) => (
+            <div
+              key={index}
+              className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep > index + 1
+                ? "bg-primary text-primary-foreground"
+                : currentStep === index + 1
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+                }`}
+            >
+              {index + 1}
+            </div>
+          ))}
+        </div>
+        <div className="w-full bg-muted rounded-full h-2 mb-2">
+          <div
+            className="bg-primary h-2 rounded-full transition-all duration-300"
+            style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
+          ></div>
+        </div>
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <div>Property Details</div>
+          <div>Images</div>
+          <div>Blockchain Info</div>
+          <div>Review</div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        {/* Step 1: Property Details */}
+        {currentStep === 1 && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+                <CardDescription>Provide the basic details about your property.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Property Title</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="e.g. Modern Apartment in Downtown"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <RadioGroup value={propertyType} onValueChange={setPropertyType} className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="individual" id="individual" />
+                        <Label htmlFor="individual">Individual</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="builder" id="builder" />
+                        <Label htmlFor="builder">Builder</Label>
+                      </div>
+                    </RadioGroup>
+
+                    {propertyType === "builder" && (
+                      <div className="grid gap-4 mt-4">
+                        <div>
+                          <Label htmlFor="downPayment">Down Payment (ETH)</Label>
+                          <Input
+                            type="number"
+                            id="downPayment"
+                            min="0"
+                            value={formData.downPayment}
+                            onChange={(e) =>
+                              setFormData((prev) => ({ ...prev, downPayment: e.target.value }))
+                            }
+                            placeholder="e.g. 10"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="monthlyInstallment">Monthly Installment (ETH)</Label>
+                          <Input
+                            type="number"
+                            id="monthlyInstallment"
+                            min="0"
+                            value={formData.monthlyInstallment}
+                            onChange={(e) =>
+                              setFormData((prev) => ({ ...prev, monthlyInstallment: e.target.value }))
+                            }
+                            placeholder="e.g. 1"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
-              ))}
-            </div>
-            <div className="w-full bg-muted rounded-full h-2 mb-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <div>Property Details</div>
-              <div>Images</div>
-              <div>Blockchain Info</div>
-              <div>Review</div>
-            </div>
-          </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* Step 1: Property Details */}
-            {currentStep === 1 && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Basic Information</CardTitle>
-                    <CardDescription>Provide the basic details about your property.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Property Title</Label>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Describe your property in detail..."
+                    rows={5}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="bedrooms">Bedrooms</Label>
+                    <Select
+                      value={formData.bedrooms}
+                      onValueChange={(value) => setFormData({ ...formData, bedrooms: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select number" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                        <SelectItem value="5">5+</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bathrooms">Bathrooms</Label>
+                    <Select defaultValue="2">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select number" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                        <SelectItem value="5">5+</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="area">Area (sq ft)</Label>
+                    <Input value={formData.area} min="0" onChange={(e) => setFormData({ ...formData, area: e.target.value })} id="area" type="number" placeholder="e.g. 1200" required />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Location</CardTitle>
+                <CardDescription>Where is your property located?</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Street Address</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="e.g. 123 Main Street"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input id="city" value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="e.g. New York" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input id="state" value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })} placeholder="e.g. NY" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="zip">ZIP Code</Label>
+                    <Input id="zip" value={formData.zip}
+                      onChange={(e) => setFormData({ ...formData, zip: e.target.value })} placeholder="e.g. 10001" required />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing</CardTitle>
+                <CardDescription>Set the price for your property.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Price</Label>
+                    <Input id="price" min="0"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })} type="number" placeholder="e.g. 4 eth" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="currency">Currency</Label>
+                    <Select value={formData.currency}
+                      onValueChange={(value) => setFormData({ ...formData, currency: value })} defaultValue="ETH">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ETH">ETH</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Step 2: Images */}
+        {currentStep === 2 && (
+
+          <div>
+            <h2>Select Images to Upload</h2>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageChange}
+            />
+
+            {selectedImages.length > 0 && (
+              <div className="mt-4">
+                <h3>Preview of Selected Images:</h3>
+                <div className="flex flex-wrap gap-4">
+                  {selectedImages.map((image, index) => (
+                    <div key={index} className="w-48 h-48 relative">
+                      <img
+                        src={image}
+                        alt={`Selected Preview ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImages(prevImages => prevImages.filter((_, i) => i !== index))}
+                        className="absolute top-1 right-1 bg-white text-black rounded-full p-1"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {uploading && <p>Uploading...</p>}
+          </div>
+        )}
+
+        {/* Step 3: Blockchain Information */}
+        {currentStep === 3 && (
+          <div className="space-y-6">
+            <Card>
+              <CardContent className="space-y-4">
+                <Separator className="my-4" />
+
+                <div className="space-y-2">
+                  <Label>Verification Documents</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Upload documents to verify your ownership of the property.
+                  </p>
+                </div>
+
+                <div className="pt-4">
+                  <Label htmlFor="document-upload" className="block mb-2">
+                    Upload Documents
+                  </Label>
+                  <Input type="file" id="document-upload" accept=".pdf,.doc,.docx,.jpg,.png" onChange={handleFileUpload}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Accepted formats: PDF, DOC, DOCX, JPG, PNG (Max 10MB per file)
+                  </p>
+
+                </div>
+                <div className="mt-4">
+                  <h3 className="font-medium">Uploaded Documents:</h3>
+
+                  <a
+                    href={`https://gateway.pinata.cloud/ipfs/${formData?.documents}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500"
+                  >
+                    View Document
+                  </a>
+
+                </div>
+
+              </CardContent>
+            </Card>
+            {propertyType === 'individual' && (
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Smart Contract Terms</CardTitle>
+                  <CardDescription>Define the terms for your property's smart contract.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Fractional Ownership</Label>
+                    <RadioGroup defaultValue="no" onValueChange={(val) => setFractional(val)}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="yes" id="fractional-yes" />
+                        <Label htmlFor="fractional-yes">Yes, allow fractional ownership</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="fractional-no" />
+                        <Label htmlFor="fractional-no">No, sell as a whole property</Label>
+                      </div>
+                    </RadioGroup>
+
+                    {/* Show the number of fractions only when fractional ownership is enabled */}
+                    {fractional === 'yes' && (
+                      <div className="pt-2">
+                        <Label htmlFor="fraction-count">Number of fractions owned by seller</Label>
                         <Input
-                          id="title"
-                          value={formData.title}
-                          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                          placeholder="e.g. Modern Apartment in Downtown"
-                          required
+                          id="fraction-count"
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 100"
+                          value={fractionsOwned}
+                          onChange={(e) => setFractionsOwned(e.target.value)}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <RadioGroup value={propertyType} onValueChange={setPropertyType} className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="individual" id="individual" />
-                            <Label htmlFor="individual">Individual</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="builder" id="builder" />
-                            <Label htmlFor="builder">Builder</Label>
-                          </div>
-                        </RadioGroup>
-
-                        {propertyType === "builder" && (
-                          <div className="grid gap-4 mt-4">
-                            <div>
-                              <Label htmlFor="downPayment">Down Payment (ETH)</Label>
-                              <Input
-                                type="number"
-                                id="downPayment"
-                                min="0"
-                                value={formData.downPayment}
-                                onChange={(e) =>
-                                  setFormData((prev) => ({ ...prev, downPayment: e.target.value }))
-                                }
-                                placeholder="e.g. 10"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="monthlyInstallment">Monthly Installment (ETH)</Label>
-                              <Input
-                                type="number"
-                                id="monthlyInstallment"
-                                min="0"
-                                value={formData.monthlyInstallment}
-                                onChange={(e) =>
-                                  setFormData((prev) => ({ ...prev, monthlyInstallment: e.target.value }))
-                                }
-                                placeholder="e.g. 1"
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                    </div>
-
-
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="Describe your property in detail..."
-                        rows={5}
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="bedrooms">Bedrooms</Label>
-                        <Select
-                          value={formData.bedrooms}
-                          onValueChange={(value) => setFormData({ ...formData, bedrooms: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select number" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1</SelectItem>
-                            <SelectItem value="2">2</SelectItem>
-                            <SelectItem value="3">3</SelectItem>
-                            <SelectItem value="4">4</SelectItem>
-                            <SelectItem value="5">5+</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bathrooms">Bathrooms</Label>
-                        <Select defaultValue="2">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select number" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1</SelectItem>
-                            <SelectItem value="2">2</SelectItem>
-                            <SelectItem value="3">3</SelectItem>
-                            <SelectItem value="4">4</SelectItem>
-                            <SelectItem value="5">5+</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="area">Area (sq ft)</Label>
-                        <Input value={formData.area} min="0" onChange={(e) => setFormData({ ...formData, area: e.target.value })} id="area" type="number" placeholder="e.g. 1200" required />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Location</CardTitle>
-                    <CardDescription>Where is your property located?</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Street Address</Label>
-                      <Input
-                        id="address"
-                        value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="e.g. 123 Main Street"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="city">City</Label>
-                        <Input id="city" value={formData.city}
-                          onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="e.g. New York" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="state">State</Label>
-                        <Input id="state" value={formData.state}
-                          onChange={(e) => setFormData({ ...formData, state: e.target.value })} placeholder="e.g. NY" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="zip">ZIP Code</Label>
-                        <Input id="zip" value={formData.zip}
-                          onChange={(e) => setFormData({ ...formData, zip: e.target.value })} placeholder="e.g. 10001" required />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Pricing</CardTitle>
-                    <CardDescription>Set the price for your property.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="price">Price</Label>
-                        <Input id="price" min="0"
-                          value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: e.target.value })} type="number" placeholder="e.g. 4 eth" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="currency">Currency</Label>
-                        <Select value={formData.currency}
-                          onValueChange={(value) => setFormData({ ...formData, currency: value })} defaultValue="ETH">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select currency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ETH">ETH</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 2: Images */}
-            {currentStep === 2 && (
-
-              <div>
-                <h2>Select Images to Upload</h2>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                />
-
-                {selectedImages.length > 0 && (
-                  <div className="mt-4">
-                    <h3>Preview of Selected Images:</h3>
-                    <div className="flex flex-wrap gap-4">
-                      {selectedImages.map((image, index) => (
-                        <div key={index} className="w-48 h-48 relative">
-                          <img
-                            src={image}
-                            alt={`Selected Preview ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setSelectedImages(prevImages => prevImages.filter((_, i) => i !== index))}
-                            className="absolute top-1 right-1 bg-white text-black rounded-full p-1"
-                          >
-                            X
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                    )}
                   </div>
-                )}
-
-                {uploading && <p>Uploading...</p>}
-              </div>
+                </CardContent>
+              </Card>
             )}
+          </div>
+        )}
 
-            {/* Step 3: Blockchain Information */}
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <Card>
-                  <CardContent className="space-y-4">
-                    <Separator className="my-4" />
-
-                    <div className="space-y-2">
-                      <Label>Verification Documents</Label>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Upload documents to verify your ownership of the property.
-                      </p>
-                    </div>
-
-                    <div className="pt-4">
-                      <Label htmlFor="document-upload" className="block mb-2">
-                        Upload Documents
-                      </Label>
-                      <Input type="file" id="document-upload" accept=".pdf,.doc,.docx,.jpg,.png" onChange={handleFileUpload}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Accepted formats: PDF, DOC, DOCX, JPG, PNG (Max 10MB per file)
-                      </p>
-
-                    </div>
-                    <div className="mt-4">
-                      <h3 className="font-medium">Uploaded Documents:</h3>
-
-                      <a
-                        href={`https://gateway.pinata.cloud/ipfs/${formData?.documents}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500"
-                      >
-                        View Document
-                      </a>
-
-                    </div>
-
-                  </CardContent>
-                </Card>
-                {propertyType === 'individual' && (
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Smart Contract Terms</CardTitle>
-                      <CardDescription>Define the terms for your property's smart contract.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Fractional Ownership</Label>
-                        <RadioGroup defaultValue="no" onValueChange={(val) => setFractional(val)}>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="yes" id="fractional-yes" />
-                            <Label htmlFor="fractional-yes">Yes, allow fractional ownership</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="no" id="fractional-no" />
-                            <Label htmlFor="fractional-no">No, sell as a whole property</Label>
-                          </div>
-                        </RadioGroup>
-
-                        {/* Show the number of fractions only when fractional ownership is enabled */}
-                        {fractional === 'yes' && (
-                          <div className="pt-2">
-                            <Label htmlFor="fraction-count">Number of fractions owned by seller</Label>
-                            <Input
-                              id="fraction-count"
-                              type="number"
-                              min="1"
-                              placeholder="e.g. 100"
-                              value={fractionsOwned}
-                              onChange={(e) => setFractionsOwned(e.target.value)}
-                            />
-                          </div>
-                        )}
+        {/* Step 4: Review */}
+        {currentStep === 4 && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Review Your Listing</CardTitle>
+                <CardDescription>
+                  Please review all information before submitting your property listing.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="details">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="details">Property Details</TabsTrigger>
+                    <TabsTrigger value="images">Images</TabsTrigger>
+                    <TabsTrigger value="blockchain">Blockchain Info</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="details" className="space-y-4 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Property Title</h3>
+                        <p>{formData?.title}</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Property Type</h3>
+                        <p>{propertyType}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Bedrooms</h3>
+                        <p>{formData?.bedrooms}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Bathrooms</h3>
+                        <p>{formData?.bathrooms}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Area</h3>
+                        <p>{formData?.area}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Price</h3>
+                        <p>{formData?.price} {formData?.currency}</p>
+                      </div>
+                    </div>
 
-            {/* Step 4: Review */}
-            {currentStep === 4 && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Review Your Listing</CardTitle>
-                    <CardDescription>
-                      Please review all information before submitting your property listing.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Tabs defaultValue="details">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="details">Property Details</TabsTrigger>
-                        <TabsTrigger value="images">Images</TabsTrigger>
-                        <TabsTrigger value="blockchain">Blockchain Info</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="details" className="space-y-4 pt-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Property Title</h3>
-                            <p>{formData?.title}</p>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Property Type</h3>
-                            <p>{propertyType}</p>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Bedrooms</h3>
-                            <p>{formData?.bedrooms}</p>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Bathrooms</h3>
-                            <p>{formData?.bathrooms}</p>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Area</h3>
-                            <p>{formData?.area}</p>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Price</h3>
-                            <p>{formData?.price} {formData?.currency}</p>
-                          </div>
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground">Address</h3>
+                      <p>{formData?.address}</p>
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground">Description</h3>
+                      <p className="text-sm">
+                        {formData?.description}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="images" className="pt-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {images.length > 0 ? (
+                        images.map((image, index) => (
+                          <img
+                            key={index}
+                            src={image || "/placeholder.svg"}
+                            alt={`Property image ${index + 1}`}
+                            className="h-24 w-full object-cover rounded-md"
+                          />
+                        ))
+                      ) : (
+                        <div className="col-span-4 text-center py-8 text-muted-foreground">
+                          No images uploaded. Please go back to add images.
                         </div>
+                      )}
+                    </div>
+                  </TabsContent>
 
-                        <div>
-                          <h3 className="font-semibold text-sm text-muted-foreground">Address</h3>
-                          <p>{formData?.address}</p>
-                        </div>
-
-                        <div>
-                          <h3 className="font-semibold text-sm text-muted-foreground">Description</h3>
-                          <p className="text-sm">
-                            {formData?.description}
-                          </p>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="images" className="pt-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {images.length > 0 ? (
-                            images.map((image, index) => (
-                              <img
-                                key={index}
-                                src={image || "/placeholder.svg"}
-                                alt={`Property image ${index + 1}`}
-                                className="h-24 w-full object-cover rounded-md"
-                              />
-                            ))
-                          ) : (
-                            <div className="col-span-4 text-center py-8 text-muted-foreground">
-                              No images uploaded. Please go back to add images.
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="blockchain" className="space-y-4 pt-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Wallet Address</h3>
-                            <p className="font-mono text-sm">0x1a2b3c4d5e6f...</p>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Blockchain Network</h3>
-                            <p>Ethereum</p>
-                          </div>
-                          {/* <div>
+                  <TabsContent value="blockchain" className="space-y-4 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Wallet Address</h3>
+                        <p className="font-mono text-sm">0x1a2b3c4d5e6f...</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Blockchain Network</h3>
+                        <p>Ethereum</p>
+                      </div>
+                      {/* <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Future Sale Royalty</h3>
                         <p>2.5%</p>
                       </div> */}
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Fractional Ownership</h3>
-                            <p>{fractional}</p>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-sm text-muted-foreground">Seller Owned</h3>
-                            <p>{fractionsOwned}</p>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h3 className="font-semibold text-sm text-muted-foreground">Verification Documents</h3>
-                          <ul className="list-disc pl-5 text-sm">
-                            <li>Property Deed</li>
-                            <li>{formData?.documents}</li>
-                          </ul>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                  <CardFooter className="flex flex-col space-y-4">
-                    <div className="flex items-center space-x-2 w-full">
-                      <Checkbox id="terms" required />
-                      <Label htmlFor="terms" className="text-sm">
-                        I confirm that all information provided is accurate and I have the legal right to sell this
-                        property.
-                      </Label>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Fractional Ownership</h3>
+                        <p>{fractional}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground">Seller Owned</h3>
+                        <p>{fractionsOwned}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2 w-full">
-                      <Checkbox id="blockchain-terms" required />
-                      <Label htmlFor="blockchain-terms" className="text-sm">
-                        I understand that this property will be tokenized on the blockchain and all transactions will be
-                        publicly visible.
-                      </Label>
+
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground">Verification Documents</h3>
+                      <ul className="list-disc pl-5 text-sm">
+                        <li>Property Deed</li>
+                        <li>{formData?.documents}</li>
+                      </ul>
                     </div>
-                  </CardFooter>
-                </Card>
-              </div>
-            )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+              <CardFooter className="flex flex-col space-y-4">
+                <div className="flex items-center space-x-2 w-full">
+                  <Checkbox id="terms" required />
+                  <Label htmlFor="terms" className="text-sm">
+                    I confirm that all information provided is accurate and I have the legal right to sell this
+                    property.
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 w-full">
+                  <Checkbox id="blockchain-terms" required />
+                  <Label htmlFor="blockchain-terms" className="text-sm">
+                    I understand that this property will be tokenized on the blockchain and all transactions will be
+                    publicly visible.
+                  </Label>
+                </div>
+              </CardFooter>
+            </Card>
+          </div>
+        )}
 
-            {/* Navigation Buttons */}
-            <div className="flex justify-between mt-8">
-              {currentStep > 1 ? (
-                <Button type="button" variant="outline" onClick={handlePrevious}>
-                  Previous
-                </Button>
-              ) : (
-                <div></div>
-              )}
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-8">
+          {currentStep > 1 ? (
+            <Button type="button" variant="outline" onClick={handlePrevious}>
+              Previous
+            </Button>
+          ) : (
+            <div></div>
+          )}
 
-              {currentStep < totalSteps ? (
-                <Button type="button" onClick={handleNext}>
-                  Next
-                </Button>
-              ) : (
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Submitting..." : "Submit Listing"}
-                </Button>
-              )}
-            </div>
-          </form>
+          {currentStep < totalSteps ? (
+            <Button type="button" onClick={handleNext}>
+              Next
+            </Button>
+          ) : (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit Listing"}
+            </Button>
+          )}
         </div>
+      </form>
+    </div>
   )
 }
