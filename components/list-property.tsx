@@ -52,7 +52,8 @@ export default function ListProperty() {
     downPayment: '',
     monthlyInstallment: '',
     currency: 'ETH',
-    documents: "IPFS"
+    documents: "IPFS",
+    sellerAddress: '',
     // Add other fields as needed
   });
 
@@ -128,24 +129,42 @@ export default function ListProperty() {
     }
   };
 
-  const removeImage = (index: number) => {
-    const updatedImages = [...images]
-    updatedImages.splice(index, 1)
-    setImages(updatedImages)
+  const getPropertyID = async () => {
+    try {
+      const contract = new ethers.Contract(
+        REAL_ESTATE_CONTRACT_ADDRESS,
+        REAL_ESTATE_CONTRACT_ABI,
+        provider
+      );
+
+      const nextId = await contract._nextPropertyId(); // Call the read function
+      console.log("Next Property ID:", nextId.toString());
+      return nextId;
+    } catch (error) {
+      console.error("Failed to fetch _nextPropertyId:", error);
+      return null;
+    }
   }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+
     e.preventDefault();
 
-    // Combine all data
-    const dataToSubmit = {
-      ...formData,
-      images: imageUrls,
-      propertyType,
-      fractional,
-      fractionsOwned: fractional === "yes" ? fractionsOwned : null,
-    };
-
     try {
+      const propertyId = await getPropertyID();
+      await handleAddProperty()
+      console.log("Property added to blockchain successfully");
+
+      // Combine all data
+      const dataToSubmit = {
+        ...formData,
+        images: imageUrls,
+        propertyType,
+        fractional,
+        fractionsOwned: fractional === "yes" ? fractionsOwned : null,
+        sellerAddress: signer?.address,
+        propertyId: propertyId?.toString()
+      };
       const response = await fetch('/api/property', {
         method: 'POST',
         headers: {
@@ -160,10 +179,7 @@ export default function ListProperty() {
 
       const result = await response.json();
       console.log('Property submitted successfully:', result);
-      await handleAddProperty()
-      console.log("Property added to blockchain successfully");
       router.push('/properties');
-      // Optionally reset form here
     } catch (error) {
       console.error('Error submitting property:', error);
     }
@@ -173,37 +189,68 @@ export default function ListProperty() {
     console.log("Adding property to blockchain...");
     try {
       if (!signer) {
-        return console.log("Wallet Account not connected!")
+        return console.log("Wallet Account not connected!");
       }
+
       const balance = await provider?.getBalance(signer?.address?.toString() || "");
       const formattedBalance = formatEther(balance?.toString() || "0");
       console.log("Balance:", formattedBalance);
-      const _contract = new ethers.Contract(REAL_ESTATE_CONTRACT_ADDRESS, REAL_ESTATE_CONTRACT_ABI, provider) as ethers.Contract & { listProperty: (...args: any[]) => Promise<any> };
+
+      const _contract = new ethers.Contract(
+        REAL_ESTATE_CONTRACT_ADDRESS,
+        REAL_ESTATE_CONTRACT_ABI,
+        provider
+      ) as ethers.Contract & {
+        listProperty: (...args: any[]) => Promise<any>;
+      };
+
       const contract = _contract.connect(signer || "") as typeof _contract;
       console.log("Contract:", contract);
+      console.log("formData", formData);
+
       let builder = false;
       let numberOfinstalment = 0;
+
+      const price = formData?.price?.toString() || "0";
+      const downPayment = formData?.downPayment?.toString() || "0";
+      const monthlyInstallment = formData?.monthlyInstallment?.toString() || "0";
+
       if (propertyType === "builder") {
         builder = true;
-        numberOfinstalment = (parseInt(formData?.price) - parseInt(formData?.downPayment)) / parseInt(formData?.monthlyInstallment);
 
+        const dp = parseFloat(downPayment);
+        const mi = parseFloat(monthlyInstallment);
+        const pr = parseFloat(price);
+
+        if (!dp || !mi || mi <= 0) {
+          console.error("Invalid down payment or installment");
+          return;
+        }
+
+        numberOfinstalment = Math.floor((pr - dp) / mi);
       }
-      const tx = await contract?.listProperty(formData?.address.toString(), formatUnits(formData?.price?.toString(), 18), formData?.documents, builder, formatUnits(formData?.downPayment?.toString(), 18), formatUnits(formData?.monthlyInstallment?.toString(), 18), numberOfinstalment)
+
+      const tx = await contract.listProperty(
+        formData?.address?.toString(),
+        parseUnits(price, 18),
+        formData?.documents?.toString(),
+        builder,
+        parseUnits(downPayment, 18),
+        parseUnits(monthlyInstallment, 18),
+        numberOfinstalment.toString()
+      );
+
       await tx.wait();
       console.log("Transaction:", tx);
-
     } catch (error) {
       console.error("Error fetching balance:", error);
     }
-
-  }
+  };
 
   useEffect(() => {
     if (signer) {
       console.log("Signer is available", signer);
     }
-    handleAddProperty()
-
   }, [signer])
 
   if (isSuccess) {
@@ -649,8 +696,8 @@ export default function ListProperty() {
 
                   <TabsContent value="images" className="pt-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {images.length > 0 ? (
-                        images.map((image, index) => (
+                      {selectedImages?.length > 0 ? (
+                        selectedImages?.map((image, index) => (
                           <img
                             key={index}
                             src={image || "/placeholder.svg"}
@@ -670,7 +717,7 @@ export default function ListProperty() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Wallet Address</h3>
-                        <p className="font-mono text-sm">0x1a2b3c4d5e6f...</p>
+                        <p className="font-mono text-sm">{signer?.address}</p>
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm text-muted-foreground">Blockchain Network</h3>

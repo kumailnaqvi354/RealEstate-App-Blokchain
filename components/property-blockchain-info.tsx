@@ -31,7 +31,7 @@ export default function PropertyBlockchainInfo({
             <div className="text-sm text-muted-foreground">Token ID</div>
             <div className="font-mono flex items-center gap-2">
               {tokenId}
-              <a href="#" className="text-primary hover:underline">
+              <a href={`https://testnet.bscscan.com/token/0xfb7c2e16d94e6f4bd84f1592d963cb56a2f079ce?a=${tokenId}`} className="text-primary hover:underline">
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -47,7 +47,7 @@ export default function PropertyBlockchainInfo({
             <div className="text-sm text-muted-foreground">Current Owner</div>
             <div className="font-mono flex items-center gap-2">
               {owner}
-              <a href="#" className="text-primary hover:underline">
+              <a href={`https://testnet.bscscan.com/address${owner}`} className="text-primary hover:underline">
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -55,7 +55,7 @@ export default function PropertyBlockchainInfo({
           <div className="p-4 border rounded-md md:col-span-2">
             <div className="text-sm text-muted-foreground">Verification Document</div>
             <div className="font-mono flex items-center gap-2">
-              {owner}
+              {deedDocument}
               <a href={`https://gateway.pinata.cloud/ipfs/${deedDocument}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 <ExternalLink className="h-3 w-3" />
               </a>
