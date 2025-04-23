@@ -47,7 +47,7 @@ export default function PropertyBlockchainInfo({
             <div className="text-sm text-muted-foreground">Current Owner</div>
             <div className="font-mono flex items-center gap-2">
               {owner}
-              <a href={`https://testnet.bscscan.com/address${owner}`} className="text-primary hover:underline">
+              <a href={`https://testnet.bscscan.com/address/${owner}`} className="text-primary hover:underline">
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -65,7 +65,7 @@ export default function PropertyBlockchainInfo({
 
       </div>
 
-      <div>
+      {/* <div>
         <h3 className="text-xl font-semibold mb-4">Transaction History</h3>
         <div className="border rounded-md overflow-hidden">
           <table className="min-w-full divide-y divide-border">
@@ -128,7 +128,7 @@ export default function PropertyBlockchainInfo({
             </tbody>
           </table>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

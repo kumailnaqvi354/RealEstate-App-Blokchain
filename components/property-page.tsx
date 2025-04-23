@@ -27,7 +27,7 @@ export default function Property({ params }: { params: { id: string } }) {
     bedrooms: number;
     bathrooms: number;
     area: number;
-    type: string;
+    propertyType: string;
     images: string[];
     verified: boolean;
     propertyId: string;
@@ -54,6 +54,16 @@ export default function Property({ params }: { params: { id: string } }) {
   const [isForSale, setIsForSale] = useState(true);
   const [fractionCount, setFractionCount] = useState(1);
   const [owner, setOwner] = useState();
+  const [buyerAddress, setBuyerAddress] = useState("");
+  const [isDepositor, setIsDepositor] = useState(false);
+  const [depositPaid, setDepositPaid] = useState(false);
+  const [downPayment, setDownPayment] = useState(0);
+  const [installmentAmount, setInstallmentAmount] = useState(0);
+  const [installmentBuyer, setInstallmentBuyer] = useState("0x0000000000000000000000000000000000000000");
+  const [noOfInstallments, setNoOfInstallments] = useState(0);
+  const [installmentPaid, setInstallmentPaid] = useState(false);
+  const [isPaymentPlanActive, setIsPaymentPlanActive] = useState(false);
+
 
   const provider = useEthersProvider()
   const signer = useEthersSigner()
@@ -83,9 +93,20 @@ export default function Property({ params }: { params: { id: string } }) {
       provider
     );
     const data = await contract?.properties(property?.propertyId?.toString());
-    console.log("Debug Property Data", data?.owner);
+    console.log("Debug Property Data", data?.paymentPlan);
+
     setIsForSale(data?.forSale);
     setOwner(data?.owner);
+    if (data.propertyType?.toString() === "1") {
+      setDownPayment(parseFloat(formatUnits(data?.paymentPlan?.downPayment?.toString(), 18)));
+      setInstallmentAmount(parseFloat(formatUnits(data?.paymentPlan?.installmentAmount?.toString(), 18)));
+      setIsPaymentPlanActive(data?.paymentPlan?.isActive);
+      setNoOfInstallments(data?.paymentPlan?.numOfInstallments?.toString());
+      
+      const installmentInfo = await contract?.installmentStatus(property?.propertyId?.toString());
+      setInstallmentPaid(installmentInfo?.paidInstallments);
+      setInstallmentBuyer(installmentInfo?.buyer);
+    }
   }
 
   const handlePurchase = async () => {
@@ -118,6 +139,72 @@ export default function Property({ params }: { params: { id: string } }) {
       console.error("Error purchasing property:", error);
     }
   }
+
+  const handleDeposit = async () => {
+    if (!signer || !property) return;
+    if (signer?.address === property?.sellerAddress) {
+      alert("You cannot purchase your own property");
+      return;
+    }
+    try {
+      console.log("Debug Property ID", property?.propertyId);
+      const contract = new ethers.Contract(
+        REAL_ESTATE_CONTRACT_ADDRESS,
+        REAL_ESTATE_CONTRACT_ABI,
+        provider
+      ) as ethers.Contract & {
+        purchaseProperty: (...args: any) => Promise<any>;
+      };
+      if (!signer) {
+        throw new Error("Signer is not available");
+      }
+      // @ts-ignore
+      const tx = await contract?.connect(signer)?.purchaseProperty(
+        parseInt(property?.propertyId || "0"),
+        {
+          value: parseEther(downPayment?.toString() || "0"),
+        }
+      );
+      await tx.wait();
+      setDepositPaid(true);
+      setBuyerAddress(signer.address);
+      setIsDepositor(true);
+    } catch (error) {
+      console.error("Error in handleDeposit:", error);
+    }
+  };
+
+  const handleInstallment = async () => {
+    if (!signer || !property) return;
+    if (signer?.address === property?.sellerAddress) {
+      alert("You cannot purchase your own property");
+      return;
+    }
+    try {
+      console.log("Debug Property ID", property?.propertyId);
+      const contract = new ethers.Contract(
+        REAL_ESTATE_CONTRACT_ADDRESS,
+        REAL_ESTATE_CONTRACT_ABI,
+        provider
+      ) as ethers.Contract & {
+        payInstallment: (...args: any) => Promise<any>;
+
+      }
+      if (!signer) {
+        throw new Error("Signer is not available");
+      }
+      // @ts-ignore
+      const tx = await contract?.connect(signer)?.payInstallment(
+        parseInt(property?.propertyId || "0"),
+        {
+          value: parseEther(installmentAmount?.toString() || "0"),
+        }
+      );
+    } catch (error) {
+      console.error("Error in handleInstallment:", error);
+    }
+  }
+
   useEffect(() => {
 
     if (routerParams?.id) {
@@ -196,7 +283,7 @@ export default function Property({ params }: { params: { id: string } }) {
                 <div className="flex flex-col items-center p-4 border rounded-md">
                   <Building className="h-5 w-5 mb-2" />
                   <span className="text-sm text-muted-foreground">Property Type</span>
-                  <span className="font-semibold">{property?.type}</span>
+                  <span className="font-semibold">{property?.propertyType}</span>
                 </div>
               </div>
             </TabsContent>
@@ -204,7 +291,7 @@ export default function Property({ params }: { params: { id: string } }) {
               <PropertyBlockchainInfo
                 tokenId={property?.propertyId || ""}
                 blockchain={"EVM"}
-                owner={property?.sellerAddress || ""}
+                owner={owner || ""}
                 deedDocument={property?.documents || ""}
                 transactionHistory={property?.transactionHistory?.map(({ date, action, price, from, to }) => ({
                   date,
@@ -223,25 +310,34 @@ export default function Property({ params }: { params: { id: string } }) {
         </div>
 
         <div className="md:col-span-1">
-          {property?.type?.toLowerCase() === "builder" ? (
+          {property?.propertyType?.toLowerCase() === "builder" ? (
             <div className="border rounded-md p-4 mt-4 space-y-4">
               <h3 className="text-md font-semibold">Builder Property</h3>
-              {!property?.depositPaid ? (
+              {installmentBuyer == "0x0000000000000000000000000000000000000000" ? (
                 <>
                   <p className="text-sm text-muted-foreground">Deposit required to proceed.</p>
+                  <p>Deposit Amount {downPayment}</p>
                   {isForSale && (
-                    <Button variant="default" className="w-full">
+                    <Button onClick={handleDeposit} variant="default" className="w-full">
                       Pay Deposit
                     </Button>
                   )}
                 </>
               ) : (
                 <>
+                  {!isForSale && isPaymentPlanActive ? (<>
                   <p className="text-sm text-muted-foreground">Deposit paid. Continue paying installments.</p>
-                  {isForSale && (
-                    <Button variant="default" className="w-full">
+                    <p>Installment Amount {installmentAmount}</p>
+                    <p>Number of Installments {noOfInstallments}</p>
+                    <p>Installment Paid {installmentPaid}</p>
+                    <Button onClick={handleInstallment} variant="default" className="w-full">
                       Pay Installment
                     </Button>
+                  </>
+                  ): (
+                    <p className="text-sm text-muted-foreground">
+                      Sold. New Owner by: <span className="font-medium">{owner}</span>
+                    </p>
                   )}
                 </>
               )}
