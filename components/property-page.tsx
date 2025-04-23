@@ -51,7 +51,9 @@ export default function Property({ params }: { params: { id: string } }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isForSale, setIsForSale] = useState(true);
   const [fractionCount, setFractionCount] = useState(1);
+  const [owner, setOwner] = useState();
 
   const provider = useEthersProvider()
   const signer = useEthersSigner()
@@ -66,15 +68,25 @@ export default function Property({ params }: { params: { id: string } }) {
 
       const data = await res.json();
       setProperty(data?.data);
-      console.log("Debug Data", data?.data);
-
-
     } catch (err: any) {
       setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
   };
+
+  const getPropertyDataBlockchain = async () => {
+    console.log("Debug Property ID", property?.propertyId);
+    const contract = new ethers.Contract(
+      REAL_ESTATE_CONTRACT_ADDRESS,
+      REAL_ESTATE_CONTRACT_ABI,
+      provider
+    );
+    const data = await contract?.properties(property?.propertyId?.toString());
+    console.log("Debug Property Data", data?.owner);
+    setIsForSale(data?.forSale);
+    setOwner(data?.owner);
+  }
 
   const handlePurchase = async () => {
     if (signer?.address === property?.sellerAddress) {
@@ -90,26 +102,18 @@ export default function Property({ params }: { params: { id: string } }) {
       ) as ethers.Contract & {
         purchaseProperty: (...args: any) => Promise<any>;
       };
-      // const contract = new ethers.Contract(
-      //   REAL_ESTATE_CONTRACT_ADDRESS,
-      //   REAL_ESTATE_CONTRACT_ABI,
-      //   provider
-      // ) as ethers.Contract & {
-      //   purchaseProperty: (propertyId: number, overrides?: ethers.Overrides) => Promise<ethers.ContractTransaction>;
-      // };
-      console.log("Debug Contract", contract);
-      console.log("Debug Signer", signer);
       if (!signer) {
         throw new Error("Signer is not available");
       }
+      // @ts-ignore
       const tx = await contract?.connect(signer)?.purchaseProperty(
         parseInt(property?.propertyId || "0"),
         {
           value: parseEther(property?.price.toString() || "0"),
         }
       );
-      
-      
+
+
     } catch (error) {
       console.error("Error purchasing property:", error);
     }
@@ -119,7 +123,10 @@ export default function Property({ params }: { params: { id: string } }) {
     if (routerParams?.id) {
       getData();
     }
-  }, []);
+    if (property?.propertyId) {
+      getPropertyDataBlockchain();
+    }
+  }, [property?.propertyId, routerParams?.id]);
 
 
   return (
@@ -215,60 +222,78 @@ export default function Property({ params }: { params: { id: string } }) {
           </Tabs>
         </div>
 
-        <div className="md:col-span-1"> {property?.type?.toLowerCase() === "builder" ? (
-          <div className="border rounded-md p-4 mt-4 space-y-4">
-            <h3 className="text-md font-semibold">Builder Property</h3>
-            {!property?.depositPaid ? (
-              <>
-                <p className="text-sm text-muted-foreground">Deposit required to proceed.</p>
-                <Button variant="default" className="w-full">
-                  Pay Deposit
-                </Button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">Deposit paid. Continue paying installments.</p>
-                <Button variant="default" className="w-full">
-                  Pay Installment
-                </Button>
-              </>
-            )}
-          </div>
-        ) : property?.fractionalOwnership ? (
-          <div className="border rounded-md p-4 mt-4 space-y-4">
-            <div>
-              <h3 className="text-md font-semibold">Fractional Ownership</h3>
-              <p className="text-sm text-muted-foreground">
-                {100 - parseInt(property?.ownerNumberOfFraction?.toString() || "0")} fractions available
-              </p>
+        <div className="md:col-span-1">
+          {property?.type?.toLowerCase() === "builder" ? (
+            <div className="border rounded-md p-4 mt-4 space-y-4">
+              <h3 className="text-md font-semibold">Builder Property</h3>
+              {!property?.depositPaid ? (
+                <>
+                  <p className="text-sm text-muted-foreground">Deposit required to proceed.</p>
+                  {isForSale && (
+                    <Button variant="default" className="w-full">
+                      Pay Deposit
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">Deposit paid. Continue paying installments.</p>
+                  {isForSale && (
+                    <Button variant="default" className="w-full">
+                      Pay Installment
+                    </Button>
+                  )}
+                </>
+              )}
             </div>
-            <div>
-              <label htmlFor="fractionCount" className="block text-sm font-medium mb-1">
-                Number of Fractions
-              </label>
-              <input
-                id="fractionCount"
-                type="number"
-                min={1}
-                max={100 - parseInt(property?.ownerNumberOfFraction?.toString() || "0")}
-                value={fractionCount}
-                onChange={(e) => setFractionCount(Number(e.target.value))}
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="Enter amount"
-              />
+          ) : property?.fractionalOwnership ? (
+            <div className="border rounded-md p-4 mt-4 space-y-4">
+              <div>
+                <h3 className="text-md font-semibold">Fractional Ownership</h3>
+                <p className="text-sm text-muted-foreground">
+                  {100 - parseInt(property?.ownerNumberOfFraction?.toString() || "0")} fractions available
+                </p>
+              </div>
+              <div>
+                <label htmlFor="fractionCount" className="block text-sm font-medium mb-1">
+                  Number of Fractions
+                </label>
+                <input
+                  id="fractionCount"
+                  type="number"
+                  min={1}
+                  max={100 - parseInt(property?.ownerNumberOfFraction?.toString() || "0")}
+                  value={fractionCount}
+                  onChange={(e) => setFractionCount(Number(e.target.value))}
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  placeholder="Enter amount"
+                />
+              </div>
+              {isForSale ? (
+                <Button variant="default" className="w-full">
+                  Purchase {fractionCount} {fractionCount > 1 ? "fractions" : "fraction"}
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Not for sale. Owned by: <span className="font-medium">{owner}</span>
+                </p>
+              )}
             </div>
-            <Button variant="default" className="w-full">
-              Purchase {fractionCount} {fractionCount > 1 ? "fractions" : "fraction"}
-            </Button>
-          </div>
-        ) : (
-          <div className="border rounded-md p-4 mt-4">
-            <Button onClick={handlePurchase} variant="default" className="w-full">
-              Purchase Property
-            </Button>
-          </div>
-        )}
+          ) : (
+            <div className="border rounded-md p-4 mt-4">
+              {isForSale ? (
+                <Button onClick={handlePurchase} variant="default" className="w-full">
+                  Purchase Property
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Sold. New Owner by: <span className="font-medium">{owner}</span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   )
