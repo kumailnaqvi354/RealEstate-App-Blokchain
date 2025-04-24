@@ -30,7 +30,7 @@ contract RealEstateTest is Test {
     /// @notice Test successful creation
     function testCreateFractionalPropertySuccess() public {
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
 
         (address seller,, uint256 sellerOwned,, uint256 price) = fractionalizeProperty.properties(1);
@@ -44,7 +44,7 @@ contract RealEstateTest is Test {
     function testCreateFractionalPropertyZeroFractions() public {
         vm.startPrank(alice);
         vm.expectRevert(abi.encodeWithSignature("ZeroFractions()"));
-        fractionalizeProperty.createFractionlizeProperty(0, 0, 1 ether); // Attempt to create with 0 fractions
+        fractionalizeProperty.createFractionlizeProperty(0, 0, 1 ether, "https://example.com/metadata/"); // Attempt to create with 0 fractions
         vm.stopPrank();
     }
 
@@ -52,14 +52,14 @@ contract RealEstateTest is Test {
     function testCreateFractionalPropertySellerOwnershipTooHigh() public {
         vm.startPrank(alice);
         vm.expectRevert(abi.encodeWithSignature("SellerOwnershipTooHigh()")); // Expect revert with the custom error SellerOwnershipTooHigh
-        fractionalizeProperty.createFractionlizeProperty(100, 101, 1 ether); // Attempt to assign more seller-owned fractions than total
+        fractionalizeProperty.createFractionlizeProperty(100, 101, 1 ether, "https://example.com/metadata/"); // Attempt to assign more seller-owned fractions than total
         vm.stopPrank();
     }
 
     /// @notice Test that fractionsForSale is calculated correctly
     function testCreateFractionalPropertyFractionsForSale() public {
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
 
         uint256 propertyId = 1;
@@ -71,7 +71,7 @@ contract RealEstateTest is Test {
     function testBuyFractionsSuccess() public {
         // Alice fractionalizes the property
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
 
         (address seller,,,,) = fractionalizeProperty.properties(1);
@@ -92,7 +92,7 @@ contract RealEstateTest is Test {
 
     function testBuyFractionsRevertInvalidBuyer() public {
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
 
         vm.startPrank(alice); // alice is the seller
@@ -112,7 +112,7 @@ contract RealEstateTest is Test {
         uint256 amountToBuy = 10;
         uint256 incorrectValue = 5 ether; // should be 10 ether
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
         vm.startPrank(bob);
         vm.expectRevert(FractionalProperty.IncorrectValueSent.selector);
@@ -123,7 +123,7 @@ contract RealEstateTest is Test {
     function testResellFractions() public {
         // Create and buy fractions before testing resell
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
 
         vm.startPrank(bob);
@@ -152,7 +152,7 @@ contract RealEstateTest is Test {
 
     function testResellZeroAmount() public {
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
 
         vm.startPrank(bob);
@@ -167,7 +167,7 @@ contract RealEstateTest is Test {
 
     function testResellZeroPrice() public {
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
 
         vm.startPrank(bob);
@@ -182,7 +182,7 @@ contract RealEstateTest is Test {
 
     function testResellInsufficientBalance() public {
         vm.startPrank(alice);
-        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
         vm.stopPrank();
 
         vm.startPrank(bob);

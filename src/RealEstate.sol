@@ -4,10 +4,10 @@ pragma solidity 0.8.29;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import {console} from "forge-std/Test.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract RealEstate is ERC721URIStorage, Ownable {
-    uint256 private _nextPropertyId;
+contract RealEstate is ERC721URIStorage, Ownable, ReentrancyGuard {
+    uint256 public _nextPropertyId;
 
     enum PropertyType {
         INDIVIDUAL,
@@ -123,7 +123,8 @@ contract RealEstate is ERC721URIStorage, Ownable {
         emit PropertyListed(propertyId, msg.sender, price, location, propertyType);
     }
 
-    function purchaseProperty(uint256 propertyId) external payable {
+    function purchaseProperty(uint256 propertyId) external payable nonReentrant {
+        if (blacklisted[msg.sender]) revert UnauthorizedCaller(msg.sender);
         Property storage property = properties[propertyId];
 
         if (!property.forSale) revert PropertyNotForSale(propertyId);

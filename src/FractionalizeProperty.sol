@@ -4,8 +4,15 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
 
-contract FractionalProperty is ERC1155, ERC1155Holder, Ownable {
+contract FractionalProperty is
+    ERC1155URIStorage,
+    ERC1155Holder,
+    Ownable,
+    ReentrancyGuard
+{
     uint256 public currentPropertyId;
 
     struct Property {
@@ -43,19 +50,31 @@ contract FractionalProperty is ERC1155, ERC1155Holder, Ownable {
         uint256 pricePerFraction
     );
 
-    event FractionsPurchased(uint256 indexed propertyId, address indexed buyer, uint256 amount, uint256 totalPaid);
+    event FractionsPurchased(
+        uint256 indexed propertyId,
+        address indexed buyer,
+        uint256 amount,
+        uint256 totalPaid
+    );
     event FractionsListedForResale(
-        uint256 indexed propertyId, address indexed seller, uint256 amount, uint256 pricePerFraction
+        uint256 indexed propertyId,
+        address indexed seller,
+        uint256 amount,
+        uint256 pricePerFraction
     );
 
     constructor(string memory uri) ERC1155(uri) Ownable(msg.sender) {}
 
     /// @notice Mint and list fractions of a property
-    function createFractionlizeProperty(uint256 totalFractions, uint256 sellerOwnedFractions, uint256 pricePerFraction)
-        external
-    {
+    function createFractionlizeProperty(
+        uint256 totalFractions,
+        uint256 sellerOwnedFractions,
+        uint256 pricePerFraction,
+        string memory tokenURI
+    ) external {
         if (totalFractions == 0) revert ZeroFractions();
-        if (sellerOwnedFractions > totalFractions) revert SellerOwnershipTooHigh();
+        if (sellerOwnedFractions > totalFractions)
+            revert SellerOwnershipTooHigh();
 
         uint256 fractionsForSale = totalFractions - sellerOwnedFractions;
         uint256 propertyId = ++currentPropertyId;
@@ -65,7 +84,13 @@ contract FractionalProperty is ERC1155, ERC1155Holder, Ownable {
 
         // Transfer seller's portion to the seller
         if (sellerOwnedFractions > 0) {
-            _safeTransferFrom(address(this), msg.sender, propertyId, sellerOwnedFractions, "");
+            _safeTransferFrom(
+                address(this),
+                msg.sender,
+                propertyId,
+                sellerOwnedFractions,
+                ""
+            );
         }
         properties[propertyId] = Property({
             seller: msg.sender,
@@ -74,19 +99,29 @@ contract FractionalProperty is ERC1155, ERC1155Holder, Ownable {
             fractionsForSale: fractionsForSale,
             pricePerFraction: pricePerFraction
         });
+        _setURI(propertyId, tokenURI);
         emit PropertyFractionalized(
-            propertyId, msg.sender, totalFractions, sellerOwnedFractions, fractionsForSale, pricePerFraction
+            propertyId,
+            msg.sender,
+            totalFractions,
+            sellerOwnedFractions,
+            fractionsForSale,
+            pricePerFraction
         );
     }
 
-    function buyFractions(uint256 propertyId, uint256 amount) external payable {
+    function buyFractions(
+        uint256 propertyId,
+        uint256 amount
+    ) external payable nonReentrant {
         Property storage property = properties[propertyId];
 
         // Cannot buy from yourself (the seller)
         if (msg.sender == property.seller) revert InvalidBuyer();
 
         // Ensure enough fractions are available
-        if (amount > property.fractionsForSale) revert NotEnoughFractionsAvailable();
+        if (amount > property.fractionsForSale)
+            revert NotEnoughFractionsAvailable();
 
         // Check price
         uint256 totalPrice = property.pricePerFraction * amount;
@@ -104,31 +139,41 @@ contract FractionalProperty is ERC1155, ERC1155Holder, Ownable {
         emit FractionsPurchased(propertyId, msg.sender, amount, msg.value);
     }
 
-    function resellFractions(uint256 propertyId, uint256 amount, uint256 pricePerFraction) external {
+    function resellFractions(
+        uint256 propertyId,
+        uint256 amount,
+        uint256 pricePerFraction
+    ) external {
         if (amount == 0) revert ZeroAmount();
         if (pricePerFraction == 0) revert ZeroPrice();
-        if (balanceOf(msg.sender, propertyId) < amount) revert InsufficientBalanceToResell();
+        if (balanceOf(msg.sender, propertyId) < amount)
+            revert InsufficientBalanceToResell();
 
         // Transfer fractions from user to contract for custody
         _safeTransferFrom(msg.sender, address(this), propertyId, amount, "");
 
         // Record resale listing
         resaleListings[propertyId].push(
-            Resale({seller: msg.sender, amount: amount, pricePerFraction: pricePerFraction})
+            Resale({
+                seller: msg.sender,
+                amount: amount,
+                pricePerFraction: pricePerFraction
+            })
         );
 
         properties[propertyId].fractionsForSale += amount;
 
-        emit FractionsListedForResale(propertyId, msg.sender, amount, pricePerFraction);
+        emit FractionsListedForResale(
+            propertyId,
+            msg.sender,
+            amount,
+            pricePerFraction
+        );
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC1155, ERC1155Holder)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC1155, ERC1155Holder) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }
