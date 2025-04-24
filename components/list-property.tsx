@@ -20,7 +20,7 @@ import axios from "axios"
 import { uploadFileToIPFS } from "@/lib/ipfsUploader"
 import { useEthersProvider, useEthersSigner } from "@/lib/ether-provider"
 import { ethers, formatEther, formatUnits, parseUnits } from 'ethers';
-import { REAL_ESTATE_CONTRACT_ABI, REAL_ESTATE_CONTRACT_ADDRESS } from "@/lib/contract"
+import { FRACTIONAL_CONTRACT_ABI, FRACTIONAL_CONTRACT_ADDRESS, REAL_ESTATE_CONTRACT_ABI, REAL_ESTATE_CONTRACT_ADDRESS } from "@/lib/contract"
 
 
 
@@ -37,6 +37,7 @@ export default function ListProperty() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false); // Track upload status
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [pricePerFraction, setPricePerFraction] = useState("")
 
   const [formData, setFormData] = useState({
     title: '',
@@ -131,15 +132,28 @@ export default function ListProperty() {
 
   const getPropertyID = async () => {
     try {
-      const contract = new ethers.Contract(
-        REAL_ESTATE_CONTRACT_ADDRESS,
-        REAL_ESTATE_CONTRACT_ABI,
-        provider
-      );
+      if(fractional === "yes") {
+        const contract = new ethers.Contract(
+          FRACTIONAL_CONTRACT_ADDRESS,
+          FRACTIONAL_CONTRACT_ABI,
+          provider
+        );
+  
+        const nextId = await contract.currentPropertyId(); // Call the read function
+        console.log("Next Property ID:", nextId.toString());
+        return parseInt(nextId.toString()) + 1;
+      }else{
 
-      const nextId = await contract._nextPropertyId(); // Call the read function
-      console.log("Next Property ID:", nextId.toString());
-      return nextId;
+        const contract = new ethers.Contract(
+          REAL_ESTATE_CONTRACT_ADDRESS,
+          REAL_ESTATE_CONTRACT_ABI,
+          provider
+        );
+  
+        const nextId = await contract._nextPropertyId(); // Call the read function
+        console.log("Next Property ID:", nextId.toString());
+        return nextId;
+      }
     } catch (error) {
       console.error("Failed to fetch _nextPropertyId:", error);
       return null;
@@ -151,6 +165,7 @@ export default function ListProperty() {
     e.preventDefault();
 
     try {
+
       const propertyId = await getPropertyID();
       await handleAddProperty()
       console.log("Property added to blockchain successfully");
@@ -191,10 +206,21 @@ export default function ListProperty() {
       if (!signer) {
         return console.log("Wallet Account not connected!");
       }
+      if (fractional === "yes") {
+        const _contract = new ethers.Contract(
+          FRACTIONAL_CONTRACT_ADDRESS,
+          FRACTIONAL_CONTRACT_ABI,
+          provider
+        ) as ethers.Contract & {
+          createFractionlizeProperty: (...args: any[]) => Promise<any>;
+        };
 
-      const balance = await provider?.getBalance(signer?.address?.toString() || "");
-      const formattedBalance = formatEther(balance?.toString() || "0");
-      console.log("Balance:", formattedBalance);
+
+        const contract = _contract.connect(signer || "") as typeof _contract;
+        const tx = await contract.createFractionlizeProperty("100", fractionsOwned, parseUnits(pricePerFraction?.toString(), 18), formData?.documents?.toString());
+        await tx.wait();
+        console.log("Transaction:", tx);
+      }
 
       const _contract = new ethers.Contract(
         REAL_ESTATE_CONTRACT_ADDRESS,
@@ -205,8 +231,6 @@ export default function ListProperty() {
       };
 
       const contract = _contract.connect(signer || "") as typeof _contract;
-      console.log("Contract:", contract);
-      console.log("formData", formData);
 
       let builder = false;
       let numberOfinstalment = 0;
@@ -626,6 +650,14 @@ export default function ListProperty() {
                           placeholder="e.g. 100"
                           value={fractionsOwned}
                           onChange={(e) => setFractionsOwned(e.target.value)}
+                        />
+                        <Label htmlFor="fraction-count">Price Per Fraction</Label>
+                        <Input
+                          id="fraction-count"
+                          type="number"
+                          placeholder="e.g. 0.0001 eth"
+                          value={pricePerFraction}
+                          onChange={(e) => setPricePerFraction(e.target.value)}
                         />
                       </div>
                     )}

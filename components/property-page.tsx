@@ -12,7 +12,8 @@ import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useEthersProvider, useEthersSigner } from "@/lib/ether-provider"
 import { ethers, formatEther, formatUnits, parseEther, parseUnits } from 'ethers';
-import { REAL_ESTATE_CONTRACT_ABI, REAL_ESTATE_CONTRACT_ADDRESS } from "@/lib/contract"
+import { FRACTIONAL_CONTRACT_ABI, FRACTIONAL_CONTRACT_ADDRESS, REAL_ESTATE_CONTRACT_ABI, REAL_ESTATE_CONTRACT_ADDRESS } from "@/lib/contract"
+import { parse } from "path"
 
 
 
@@ -35,8 +36,8 @@ export default function Property({ params }: { params: { id: string } }) {
     lastUpdated: string;
     sellerAddress: string;
     documents: string;
-    fractionalOwnership?: boolean;
-    ownerNumberOfFraction?: number;
+    fractional?: string;
+    fractionsOwned?: number;
     depositPaid?: boolean;
     transactionHistory: {
       date: string;
@@ -52,7 +53,7 @@ export default function Property({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isForSale, setIsForSale] = useState(true);
-  const [fractionCount, setFractionCount] = useState(1);
+  const [fractionCount, setFractionCount] = useState(0);
   const [owner, setOwner] = useState();
   const [buyerAddress, setBuyerAddress] = useState("");
   const [isDepositor, setIsDepositor] = useState(false);
@@ -63,11 +64,11 @@ export default function Property({ params }: { params: { id: string } }) {
   const [noOfInstallments, setNoOfInstallments] = useState(0);
   const [installmentPaid, setInstallmentPaid] = useState(false);
   const [isPaymentPlanActive, setIsPaymentPlanActive] = useState(false);
+  const [pricePerFraction, setPricePerFraction] = useState("");
 
 
   const provider = useEthersProvider()
   const signer = useEthersSigner()
-
 
   const routerParams = useParams();
   const getData = async () => {
@@ -77,6 +78,7 @@ export default function Property({ params }: { params: { id: string } }) {
       if (!res.ok) throw new Error("Failed to fetch property");
 
       const data = await res.json();
+      console.log("Debug Property Data", data);
       setProperty(data?.data);
     } catch (err: any) {
       setError(err.message || "An error occurred");
@@ -93,7 +95,6 @@ export default function Property({ params }: { params: { id: string } }) {
       provider
     );
     const data = await contract?.properties(property?.propertyId?.toString());
-    console.log("Debug Property Data", data?.paymentPlan);
 
     setIsForSale(data?.forSale);
     setOwner(data?.owner);
@@ -102,10 +103,21 @@ export default function Property({ params }: { params: { id: string } }) {
       setInstallmentAmount(parseFloat(formatUnits(data?.paymentPlan?.installmentAmount?.toString(), 18)));
       setIsPaymentPlanActive(data?.paymentPlan?.isActive);
       setNoOfInstallments(data?.paymentPlan?.numOfInstallments?.toString());
-      
+
       const installmentInfo = await contract?.installmentStatus(property?.propertyId?.toString());
       setInstallmentPaid(installmentInfo?.paidInstallments);
       setInstallmentBuyer(installmentInfo?.buyer);
+    }
+    if (property?.fractional === "yes") {
+      const _contract = new ethers.Contract(
+        FRACTIONAL_CONTRACT_ADDRESS,
+        FRACTIONAL_CONTRACT_ABI,
+        provider
+      )
+      //@ts-ignore
+      const _data = await _contract.properties("1");
+      setPricePerFraction(formatUnits(_data?.pricePerFraction, 18));
+      console.log("Transaction:", data);
     }
   }
 
@@ -205,6 +217,34 @@ export default function Property({ params }: { params: { id: string } }) {
     }
   }
 
+  const handleFractionPurchase = async () => {
+    if (!signer || !property) return;
+    if (signer?.address === property?.sellerAddress) {
+      alert("You cannot purchase your own property");
+      return;
+    }
+    const _contract = new ethers.Contract(
+      FRACTIONAL_CONTRACT_ADDRESS,
+      FRACTIONAL_CONTRACT_ABI,
+      provider
+    ) as ethers.Contract & {
+      buyFractions: (...args: any[]) => Promise<any>;
+    };
+
+    //@ts-ignore
+    if (!signer) {
+      throw new Error("Signer is not available");
+    }
+    const totalAmount = parseEther(pricePerFraction?.toString() || "0"); // rounds safely
+    const contract = _contract.connect(signer || "") as typeof _contract;
+    const tx = await contract.buyFractions("1", fractionCount?.toString(),
+      {
+        value: totalAmount?.toString() || "0",
+      });
+    await tx.wait();
+    console.log("Transaction:", tx);
+  }
+
   useEffect(() => {
 
     if (routerParams?.id) {
@@ -213,7 +253,7 @@ export default function Property({ params }: { params: { id: string } }) {
     if (property?.propertyId) {
       getPropertyDataBlockchain();
     }
-  }, [property?.propertyId, routerParams?.id]);
+  }, [property?.propertyId, routerParams?.id, depositPaid, isPaymentPlanActive]);
 
 
   return (
@@ -326,7 +366,7 @@ export default function Property({ params }: { params: { id: string } }) {
               ) : (
                 <>
                   {!isForSale && isPaymentPlanActive ? (<>
-                  <p className="text-sm text-muted-foreground">Deposit paid. Continue paying installments.</p>
+                    <p className="text-sm text-muted-foreground">Deposit paid. Continue paying installments.</p>
                     <p>Installment Amount {installmentAmount}</p>
                     <p>Number of Installments {noOfInstallments}</p>
                     <p>Installment Paid {installmentPaid}</p>
@@ -334,7 +374,7 @@ export default function Property({ params }: { params: { id: string } }) {
                       Pay Installment
                     </Button>
                   </>
-                  ): (
+                  ) : (
                     <p className="text-sm text-muted-foreground">
                       Sold. New Owner by: <span className="font-medium">{owner}</span>
                     </p>
@@ -342,12 +382,12 @@ export default function Property({ params }: { params: { id: string } }) {
                 </>
               )}
             </div>
-          ) : property?.fractionalOwnership ? (
+          ) : property?.fractional == "yes" ? (
             <div className="border rounded-md p-4 mt-4 space-y-4">
               <div>
                 <h3 className="text-md font-semibold">Fractional Ownership</h3>
                 <p className="text-sm text-muted-foreground">
-                  {100 - parseInt(property?.ownerNumberOfFraction?.toString() || "0")} fractions available
+                  {100 - parseInt(property?.fractionsOwned?.toString() || "0")} fractions available
                 </p>
               </div>
               <div>
@@ -358,15 +398,16 @@ export default function Property({ params }: { params: { id: string } }) {
                   id="fractionCount"
                   type="number"
                   min={1}
-                  max={100 - parseInt(property?.ownerNumberOfFraction?.toString() || "0")}
+                  max={100 - parseInt(property?.fractionsOwned?.toString() || "0")}
                   value={fractionCount}
                   onChange={(e) => setFractionCount(Number(e.target.value))}
                   className="w-full rounded-md border px-3 py-2 text-sm"
                   placeholder="Enter amount"
                 />
+                <p> {pricePerFraction}</p>
               </div>
               {isForSale ? (
-                <Button variant="default" className="w-full">
+                <Button onClick={handleFractionPurchase} variant="default" className="w-full">
                   Purchase {fractionCount} {fractionCount > 1 ? "fractions" : "fraction"}
                 </Button>
               ) : (
