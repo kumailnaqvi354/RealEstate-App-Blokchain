@@ -115,7 +115,7 @@ export default function Property({ params }: { params: { id: string } }) {
         provider
       )
       //@ts-ignore
-      const _data = await _contract.properties("1");
+      const _data = await _contract.properties(property?.propertyId?.toString());
       setPricePerFraction(formatUnits(_data?.pricePerFraction, 18));
       console.log("Transaction:", data);
     }
