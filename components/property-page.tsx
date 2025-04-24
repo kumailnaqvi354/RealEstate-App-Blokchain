@@ -237,7 +237,7 @@ export default function Property({ params }: { params: { id: string } }) {
     }
     const totalAmount = parseEther(pricePerFraction?.toString() || "0"); // rounds safely
     const contract = _contract.connect(signer || "") as typeof _contract;
-    const tx = await contract.buyFractions("1", fractionCount?.toString(),
+    const tx = await contract.buyFractions(property?.propertyId, fractionCount?.toString(),
       {
         value: totalAmount?.toString() || "0",
       });
