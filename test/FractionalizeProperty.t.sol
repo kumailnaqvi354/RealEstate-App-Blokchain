@@ -194,4 +194,77 @@ contract RealEstateTest is Test {
         fractionalizeProperty.resellFractions(1, 15, 2 ether); // Trying to resell more than owned
         vm.stopPrank();
     }
+
+    /// @notice Measure performance of createFractionlizeProperty
+    function testCreatePerf() public {
+        uint256 N = 20;
+        uint256[] memory gasUsed = new uint256[](N);
+        uint256 start = block.timestamp;
+
+        for (uint256 i; i < N; i++) {
+            vm.prank(alice);
+            uint256 g0 = gasleft();
+            fractionalizeProperty.createFractionlizeProperty(
+                100 + i,
+                50,
+                1 ether,
+                string(abi.encodePacked("uri/", vm.toString(i)))
+            );
+            gasUsed[i] = g0 - gasleft();
+            vm.warp(block.timestamp + 1);
+        }
+
+        uint256 duration = block.timestamp - start;
+        uint256 totalTx  = N;
+        uint256 tps      = totalTx / (duration > 0 ? duration : 1);
+        uint256 totalGas;
+        for (uint256 i; i < N; i++) totalGas += gasUsed[i];
+        uint256 avgGas = totalGas / totalTx;
+        uint256 blockGasLimit = 30_000_000;
+        uint256 theoreticalMaxTps = blockGasLimit / avgGas;
+
+        console.log("========= Performance Metrics =========");
+        console.log("Total transactions:", totalTx);
+        console.log("Test duration (s):", duration);
+        console.log("Transactions per second (TPS):", tps);
+        console.log("Average gas per transaction:", avgGas);
+        console.log("Total gas used:", totalGas);
+        console.log("Theoretical TPS (30M gas block):", theoreticalMaxTps);
+    }
+
+    /// @notice Measure performance of buyFractions
+    function testBuyPerf() public {
+        // prepare one fractional property
+        vm.prank(alice);
+        fractionalizeProperty.createFractionlizeProperty(100, 40, 1 ether, "https://example.com/metadata/");
+
+        uint256 M = 50;
+        uint256[] memory gasUsed = new uint256[](M);
+        uint256 start = block.timestamp;
+
+        for (uint256 i; i < M; i++) {
+            vm.prank(bob);
+            uint256 g0 = gasleft();
+            fractionalizeProperty.buyFractions{value: 1 ether}(1, 1);
+            gasUsed[i] = g0 - gasleft();
+            vm.warp(block.timestamp + 1);
+        }
+
+        uint256 duration = block.timestamp - start;
+        uint256 totalTx  = M;
+        uint256 tps      = totalTx / (duration > 0 ? duration : 1);
+        uint256 totalGas;
+        for (uint256 i; i < M; i++) totalGas += gasUsed[i];
+        uint256 avgGas = totalGas / totalTx;
+        uint256 blockGasLimit = 30_000_000;
+        uint256 theoreticalMaxTps = blockGasLimit / avgGas;
+
+        console.log("========= Performance Metrics =========");
+        console.log("Total transactions:", totalTx);
+        console.log("Test duration (s):", duration);
+        console.log("Transactions per second (TPS):", tps);
+        console.log("Average gas per transaction:", avgGas);
+        console.log("Total gas used:", totalGas);
+        console.log("Theoretical TPS (30M gas block):", theoreticalMaxTps);
+    }
 }

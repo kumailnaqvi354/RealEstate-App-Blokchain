@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {RealEstate} from "../src/RealEstate.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+
 
 contract RealEstateTest is Test {
     RealEstate public realEstate;
@@ -18,10 +20,10 @@ contract RealEstateTest is Test {
         charlie = address(0x3);
         dave = address(0x4);
         admin = address(0x5);
-        vm.deal(alice, 1000 ether);
-        vm.deal(bob, 1000 ether);
-        vm.deal(charlie, 1000 ether);
-        vm.deal(dave, 1000 ether);
+        vm.deal(alice, 5000 ether);
+        vm.deal(bob, 5000 ether);
+        vm.deal(charlie, 5000 ether);
+        vm.deal(dave, 5000 ether);
         vm.startPrank(admin);
         realEstate = new RealEstate();
         vm.stopPrank();
@@ -311,4 +313,62 @@ contract RealEstateTest is Test {
         // Check buyer refunded only installments, not downpayment
         assertEq(alice.balance, 1000 ether - 20 ether); // downpayment should not be refunded
     }
+
+function testCalculateTPS() public {
+        uint256 NUM_TRANSACTIONS = 100;
+        uint256[] memory gasUsed = new uint256[](NUM_TRANSACTIONS * 2);
+        uint256 startTime = block.timestamp;
+
+        // List properties
+        for (uint256 i = 0; i < NUM_TRANSACTIONS; i++) {
+            vm.startPrank(alice);
+            uint256 gasStart = gasleft();
+            realEstate.listProperty(
+                string(abi.encodePacked("Property ", vm.toString(i))),
+                100 ether,
+                "ipfs://",
+                false, 0, 0, 0
+            );
+            gasUsed[i] = gasStart - gasleft();
+            vm.stopPrank();
+            vm.warp(block.timestamp + 1); // Increment timestamp
+        }
+
+        // Purchase properties
+        for (uint256 i = 0; i < NUM_TRANSACTIONS; i++) {
+            vm.startPrank(bob);
+            vm.deal(bob, 100 ether); // Reset balance for each purchase
+            uint256 gasStart = gasleft();
+            realEstate.purchaseProperty{value: 100 ether}(i);
+            gasUsed[NUM_TRANSACTIONS + i] = gasStart - gasleft();
+            vm.stopPrank();
+            vm.warp(block.timestamp + 1); // Increment timestamp
+        }
+
+        uint256 endTime = block.timestamp;
+        uint256 totalDuration = endTime - startTime;
+        require(totalDuration > 0, "Test duration must be > 0");
+        uint256 tps = (NUM_TRANSACTIONS * 2) / totalDuration;
+
+        // Gas analysis
+        uint256 totalGas;
+        for (uint256 i = 0; i < gasUsed.length; i++) {
+            totalGas += gasUsed[i];
+        }
+        uint256 avgGas = totalGas / gasUsed.length;
+
+        console.log("========= Performance Metrics of Transactions =========", NUM_TRANSACTIONS);
+        console.log("Total transactions:", NUM_TRANSACTIONS * 2);
+        console.log("Test duration (s):", totalDuration);
+        console.log("Transactions per second (TPS):", tps);
+        console.log("Average gas per transaction:", avgGas);
+        console.log("Total gas used:", totalGas);
+        
+        // Theoretical maximum TPS calculation
+        uint256 blockGasLimit = 30_000_000;
+        uint256 theoreticalMaxTps = blockGasLimit / avgGas;
+        console.log("Theoretical TPS (30M gas block):", theoreticalMaxTps);
+    }
+
+
 }
