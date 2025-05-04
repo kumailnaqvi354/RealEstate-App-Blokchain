@@ -5,7 +5,6 @@ import {Test, console} from "forge-std/Test.sol";
 import {RealEstate} from "../src/RealEstate.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-
 contract RealEstateTest is Test {
     RealEstate public realEstate;
     address public alice;
@@ -314,7 +313,7 @@ contract RealEstateTest is Test {
         assertEq(alice.balance, 1000 ether - 20 ether); // downpayment should not be refunded
     }
 
-function testCalculateTPS() public {
+    function testCalculateTPS() public {
         uint256 NUM_TRANSACTIONS = 100;
         uint256[] memory gasUsed = new uint256[](NUM_TRANSACTIONS * 2);
         uint256 startTime = block.timestamp;
@@ -324,10 +323,7 @@ function testCalculateTPS() public {
             vm.startPrank(alice);
             uint256 gasStart = gasleft();
             realEstate.listProperty(
-                string(abi.encodePacked("Property ", vm.toString(i))),
-                100 ether,
-                "ipfs://",
-                false, 0, 0, 0
+                string(abi.encodePacked("Property ", vm.toString(i))), 100 ether, "ipfs://", false, 0, 0, 0
             );
             gasUsed[i] = gasStart - gasleft();
             vm.stopPrank();
@@ -363,12 +359,10 @@ function testCalculateTPS() public {
         console.log("Transactions per second (TPS):", tps);
         console.log("Average gas per transaction:", avgGas);
         console.log("Total gas used:", totalGas);
-        
+
         // Theoretical maximum TPS calculation
         uint256 blockGasLimit = 30_000_000;
         uint256 theoreticalMaxTps = blockGasLimit / avgGas;
         console.log("Theoretical TPS (30M gas block):", theoreticalMaxTps);
     }
-
-
 }

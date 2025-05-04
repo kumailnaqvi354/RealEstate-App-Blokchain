@@ -205,20 +205,19 @@ contract RealEstateTest is Test {
             vm.prank(alice);
             uint256 g0 = gasleft();
             fractionalizeProperty.createFractionlizeProperty(
-                100 + i,
-                50,
-                1 ether,
-                string(abi.encodePacked("uri/", vm.toString(i)))
+                100 + i, 50, 1 ether, string(abi.encodePacked("uri/", vm.toString(i)))
             );
             gasUsed[i] = g0 - gasleft();
             vm.warp(block.timestamp + 1);
         }
 
         uint256 duration = block.timestamp - start;
-        uint256 totalTx  = N;
-        uint256 tps      = totalTx / (duration > 0 ? duration : 1);
+        uint256 totalTx = N;
+        uint256 tps = totalTx / (duration > 0 ? duration : 1);
         uint256 totalGas;
-        for (uint256 i; i < N; i++) totalGas += gasUsed[i];
+        for (uint256 i; i < N; i++) {
+            totalGas += gasUsed[i];
+        }
         uint256 avgGas = totalGas / totalTx;
         uint256 blockGasLimit = 30_000_000;
         uint256 theoreticalMaxTps = blockGasLimit / avgGas;
@@ -251,10 +250,12 @@ contract RealEstateTest is Test {
         }
 
         uint256 duration = block.timestamp - start;
-        uint256 totalTx  = M;
-        uint256 tps      = totalTx / (duration > 0 ? duration : 1);
+        uint256 totalTx = M;
+        uint256 tps = totalTx / (duration > 0 ? duration : 1);
         uint256 totalGas;
-        for (uint256 i; i < M; i++) totalGas += gasUsed[i];
+        for (uint256 i; i < M; i++) {
+            totalGas += gasUsed[i];
+        }
         uint256 avgGas = totalGas / totalTx;
         uint256 blockGasLimit = 30_000_000;
         uint256 theoreticalMaxTps = blockGasLimit / avgGas;
