@@ -70,6 +70,11 @@ export default function Property({ params }: { params: { id: string } }) {
   const provider = useEthersProvider()
   const signer = useEthersSigner()
 
+  const isSeller = property?.sellerAddress?.toLowerCase() === signer?.address?.toLowerCase();
+
+  const showCreateDispute = property?.propertyType === "builder" && isSeller;
+
+
   const routerParams = useParams();
   const getData = async () => {
     try {
@@ -245,6 +250,35 @@ export default function Property({ params }: { params: { id: string } }) {
     console.log("Transaction:", tx);
   }
 
+  const handleDispute = async () => {
+    if (signer?.address !== property?.sellerAddress) {
+      alert("You cannot create dispute on this property");
+      return;
+    }
+    try {
+      console.log("Debug Property ID", property?.propertyId);
+      const contract = new ethers.Contract(
+        REAL_ESTATE_CONTRACT_ADDRESS,
+        REAL_ESTATE_CONTRACT_ABI,
+        provider
+      ) as ethers.Contract & {
+        raiseDispute: (...args: any) => Promise<any>;
+      };
+      if (!signer) {
+        throw new Error("Signer is not available");
+      }
+      // @ts-ignore
+      const tx = await contract?.connect(signer)?.raiseDispute(
+        parseInt(property?.propertyId || "0")
+      );
+      await tx.wait();
+      console.log("Dispute raised successfully:", tx);
+
+    } catch (error) {
+      console.error("Error purchasing property:", error);
+    }
+  }
+
   useEffect(() => {
 
     if (routerParams?.id) {
@@ -353,17 +387,16 @@ export default function Property({ params }: { params: { id: string } }) {
           {property?.propertyType?.toLowerCase() === "builder" ? (
             <div className="border rounded-md p-4 mt-4 space-y-4">
               <h3 className="text-md font-semibold">Builder Property</h3>
-              {installmentBuyer == "0x0000000000000000000000000000000000000000" ? (
-                <>
-                  <p className="text-sm text-muted-foreground">Deposit required to proceed.</p>
-                  <p>Deposit Amount {downPayment}</p>
-                  {isForSale && (
-                    <Button onClick={handleDeposit} variant="default" className="w-full">
-                      Pay Deposit
-                    </Button>
-                  )}
-                </>
-              ) : (
+              {showCreateDispute ? (
+                <Button onClick={handleDispute} variant="default" className="w-full">
+                  Create Dispute
+                </Button>) : installmentBuyer == "0x0000000000000000000000000000000000000000" ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">Deposit required to proceed.</p>
+                    <p>Deposit Amount {downPayment}</p>
+
+                  </>
+                ) : (
                 <>
                   {!isForSale && isPaymentPlanActive ? (<>
                     <p className="text-sm text-muted-foreground">Deposit paid. Continue paying installments.</p>
